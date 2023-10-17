@@ -1,0 +1,6 @@
+sys:sysvars
+echo CPU: $CPU
+echo FPU: $FPU
+echo Chipset: $Chipset
+echo VFreq: $VFreq
+echo UAE: $UAE
