@@ -3,3 +3,4 @@ test/harddisk/sysvars
 .DS_Store
 bin
 .vscode/settings.json
+*.lha
