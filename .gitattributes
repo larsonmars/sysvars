@@ -1,0 +1,3 @@
+*.S text eol=lf
+*.s text eol=lf
+startup-sequence text eol=lf
