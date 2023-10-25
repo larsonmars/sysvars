@@ -29,7 +29,7 @@
 			"label": "amigaassembly: build",
 			"group": {
 				"kind": "build",
-				"isDefault": true
+				"isDefault": false
 			}
 		},
 		{
@@ -39,7 +39,7 @@
 				"command": "${config:amiga-assembly.binDir}/vasmm68k_mot",
 				"args": [
 					"-m68000",
-					"-Fhunkexe",
+					"-Fhunk",
 					"-nosym"
 				]
 			},
