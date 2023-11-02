@@ -1,31 +1,46 @@
 {
     "version": "0.2.0",
     "configurations": [
-
         {
             "type": "amiga-assembly",
             "request": "launch",
-            "name": "WinUAE Debug",
+            "name": "WinUAE Debug 030/882",
             "stopOnEntry": true,
             "program": "${workspaceFolder}/test/harddisk/sysvars",
-            "remoteProgram": "SYS:sysvars",
+            "remoteProgram": "sysvars",
             "emulatorType": "winuae",
             "emulatorArgs": [
                 "-s",
+                "cpu_type=68030",
+                 "-s",
+                "cpu_model=68030",
+                "-s",
+                "fpu_model=68882",
+                "-s",
                 "filesystem=rw,dh0:${workspaceFolder}/test/harddisk",
+                "-s",
+                "bsdsocket_emu=true"
             ],
             "preLaunchTask": "amigaassembly: build"
         },
         {
             "type": "amiga-assembly",
             "request": "launch",
-            "name": "WinUAE Release",
+            "name": "WinUAE Release 030/882",
             "stopOnEntry": false,
             "program": "${workspaceFolder}/test/harddisk/sysvars",
             "emulatorType": "winuae",
             "emulatorArgs": [
                 "-s",
+                "cpu_type=68030",
+                "-s",
+                "cpu_model=68030",
+                "-s",
+                "fpu_model=68882",
+                "-s",
                 "filesystem=rw,dh0:${workspaceFolder}/test/harddisk",
+                "-s",
+                "bsdsocket_emu=true"
             ],
             "preLaunchTask": "amigaassembly: release build"
         },
@@ -35,7 +50,7 @@
             "name": "FS-UAE Debug",
             "stopOnEntry": false,
             "program": "${workspaceFolder}/test/harddisk/sysvars",
-            "remoteProgram": "SYS:sysvars",
+            "remoteProgram": "sysvars",
             "emulatorType": "fs-uae",
             "emulatorArgs": [
                 "--hard_drive_0=${workspaceFolder}/test/harddisk",
