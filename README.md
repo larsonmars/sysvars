@@ -1,5 +1,9 @@
-# sysvars
 
+<p align="center">
+  <img src="https://github.com/larsonmars/sysvars/assets/33299122/0c5c48a3-638b-4caa-a48e-8da800cdeea6">
+</p>
+
+# Overview
 sysvars is a small CLI tool for the Amiga that creates several environment variables holding valuable system information. These variables can be used, for example, in the startup-sequence to enable/disable certain patches, assigns, and so on.
 
 Currently, the following variables are set:
@@ -26,7 +30,7 @@ However, for the purists, sysvars runs happily also on OS 1.3 and even down to O
 [^4]: Workbench 2.0 and above 
 [^5]: UAE is detected via the uae.resource, which is only there if a virtual hard drive or another UAE expansion to be enabled. Thus, detection will fail on floppy-only-unexpanded Amiga configurations.
 
-## Building
+# Building
 
 The source should build with [VASM](http://www.compilers.de/vasm.html), [AsmOne](http://www.theflamearrows.info/documents/asmone.html), [AsmTwo](http://coppershade.org/articles/Code/Tools/AsmTwo/), and [AsmPro](https://aminet.net/package/dev/asm/ASMPro1.19)[^6].
 
@@ -34,7 +38,7 @@ You can also compile this in VSCode using a [nice VSCode plugin](https://github.
 
 [^6]: Currently, not compiling, needs more investigation
 
-## Why such a Tool?
+# Why such a Tool?
 
 As many Amiga users, I have multiple Amigas, booting from flash memory. However, I do not want to maintain multiple operating system configurations. In the past, I have used several tools to branch during startup, which yielded a complex startup-sequence/user-startup and an extended boot time.
 
@@ -56,7 +60,7 @@ ENDIF
 
 Also, I always wanted to learn M68k assembler. After 30 years using an Amiga this was about time!
 
-## Future Plans/Known Bugs
+# Future Plans/Known Bugs
 
 The tool is already quite useable, but there are still some things missing, which I want to fix in future versions (no particular order):
 
@@ -68,8 +72,8 @@ The tool is already quite useable, but there are still some things missing, whic
 - Make use of boards.library and identify.library if available for even more expansions.
 - Make a WinUAE/FS-UAE-based test suite for automated tests (CI/CD-like)
 
-## Release History
-### Version 0.10
+# Release History
+## Version 0.10
 - Added ``$KickVer`` and ``$KickEnv`` that provide kickstart version and revision
 - ``$UAE`` is now split in ``$UAEMajor``, ``$UAEMinor`` and ``$UAERev`` for more convenient scripting
 - Added detection of bsdsocket.library (``$BSDSockLib`` contains the id string, ``$BSDSockLibVer`` the version, and ``$BSDSockRev`` the revision)
@@ -79,8 +83,8 @@ The tool is already quite useable, but there are still some things missing, whic
   - Easier integration of new features via consistent scheme
   - Better comments
 - added test script for startup-sequence
-### Version 0.9
+## Version 0.9
 - Added limited OS 1.3 Support (CPU/FPU detection up to 68020/68881) via a custom SetVar implementation (setenv-like functionality)
 - small code improvements
-### Version 0.8
+## Version 0.8
 - Initial Release on GitHub and Aminet
