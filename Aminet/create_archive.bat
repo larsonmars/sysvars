@@ -1,4 +1,4 @@
-:: Creates Aminet package
+t:: Creates Aminet package
 ::
 :: Asks for author and uploader information during this process
 :: Also, we first assume the executables for VASM, VLINK and LHA are in PATH.
@@ -67,7 +67,7 @@ powershell -Command "(gc '%~dp0sysvars.readme') -replace '\$author\$', '%author%
 
 COPY sysvars.readme "%deploy_path%" || GOTO :ERROR
 ECHO LHA Crunching...
-"%lha%" a -o7 "%deploy_path%\sysvars.lha" sysvars sysvars.readme source || GOTO :ERROR
+"%lha%" a -o5 "%deploy_path%\sysvars.lha" sysvars sysvars.readme source || GOTO :ERROR
 
 CALL :CLEANUP
 EXIT /b 0

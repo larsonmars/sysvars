@@ -1,6 +1,22 @@
-sys:sysvars
-echo CPU: $CPU
-echo FPU: $FPU
-echo Chipset: $Chipset
-echo VFreq: $VFreq
-echo UAE: $UAE
+ECHO "             ___ _    __ _    _     ____  ____"
+ECHO "            / __| |  / _| |  | |/\ |  _ \/ ___)"
+ECHO "           | (__| | | (_| |  | /  \| | \| (__ "
+ECHO "            \__  \ \/\__| |  |/ /\ | |_/ \__ \"
+ECHO "               ) )\ /   )\ \// ____|  _ (   ) )"
+ECHO "            __/ // / __/ /\ / /    | | \ \_/ /"
+ECHO "           (___//_/ |___/  V_/     |_|  (___/ "
+ECHO ""
+ECHO "Setting up..."
+
+; Due to unclear rights situation, you must provide the required commands
+; (e.g., from Workbench 1.3)
+; For OS 1.x, you also need the L:Ram-Handler to work with the RAM:
+
+; The next 4 lines are only required in OS 1.x. No assigns are needed in OS 2.0+
+;MAKEDIR RAM:T
+;ASSIGN T: RAM:T
+;MAKEDIR RAM:ENV
+;ASSIGN ENV: RAM:Env
+
+ECHO "Executing sysvars test sequence"
+EXECUTE S:test-sequence
