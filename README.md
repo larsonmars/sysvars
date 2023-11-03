@@ -56,7 +56,7 @@ ENDIF
 
 Also, I always wanted to learn M68k assembler. After 30 years using an Amiga this was about time!
 
-## Future Plans/Known bugs
+## Future Plans/Known Bugs
 
 The tool is already quite useable, but there are still some things missing, which I want to fix in future versions (no particular order):
 

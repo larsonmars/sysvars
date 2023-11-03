@@ -2,7 +2,7 @@
 
 **You are welcome to contribute to this project!**
 
-If you do, please follow the rules stated below
+If you do, please follow the rules stated below! Thank You!
 
 ## General ##
 - You use pull requests
@@ -19,7 +19,7 @@ If you do, please follow the rules stated below
 - sub routines that are called more than once (utiliy functions) should by default preserve all but the scratch registers D0, D1, A0, A1.
 - sub routines that are called on top-level and have no interdependencies can use all registers (Please use comments stating which registers are overwritten)
 
-## Sytle ##
+## Style ##
 - Max. 60 columns including comments (so all is visible in ASM-ONE with line-numbers enabled on a standard 640 pixel wide screen mode)
 - No spaces between operands
 - Labels start at column 0 and have a colon
@@ -36,5 +36,3 @@ If you do, please follow the rules stated below
   - non-exported sub routines (currently no plans to make a library out of the program) in camelCase (to distinguish them from OS functions)
   - Constants in ALL_CAPS, except when they refer to some fixed/known symbol, such as library vector offsets. Then it is ``_LVOFunctionName`` (by convention)
   - Macro labels in ALL_CAPS (to distinguish them easily from labels and sub routines)
-
-Thank You!

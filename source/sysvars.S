@@ -142,15 +142,15 @@ SET_ENV_VAR: macro
 ; Potentially overwrites: D0, D1, D2, D3, A0, A1
 ;-----------------------------------------------------------
 SET_ENV_VAR_CLEN: macro
-    ifd ENABLE_\1              ; if not enabled, do not set
-    move.l #\1EnvVarName,d1    ; arg1: name address
+    ifd ENABLE_\1               ; if not enabled, do not set
+    move.l #\1EnvVarName,d1     ; arg1: name address
     ifne \3
-    move.l \2,d2               ; arg2: content address
+    move.l \2,d2                ; arg2: content address
     endif
-    moveq  #\3,d3              ; arg3: content length
+    moveq  #\3,d3               ; arg3: content length
     bsr    setEnvVar
     bne.b .setVarDone\@
-    move.l #\1EnvVarName,d1   ; print error
+    move.l #\1EnvVarName,d1     ; print error
     bsr   printSetEnvVarErrMsg
     moveq #0,d0                 ; indicate error
 .setVarDone\@:
@@ -306,9 +306,9 @@ ENABLE_\@=1
         endif
     endif
     if NARG>3
-        FAIL Too many arguments, please extent!
-    ENDIF
-    IFD ENABLE_\@
+        fail Too many arguments, please extent!
+    endif
+    ifd ENABLE_\@
     endm
 
 ENDIF_ENABLED: macro
@@ -330,13 +330,12 @@ main:
 
     bsr setAllVariables
 
+
     CLOSE_LIBRARY a6  ; close dos.library
     moveq   #0,d0     ; return code 0
     rts
 
     section Strings,code
-
-
 
 DosLibName: dc.b "dos.library",0
 
@@ -359,18 +358,19 @@ DosLibName: dc.b "dos.library",0
 ; Potentially overwrites all registers, except A6
 ;-----------------------------------------------------------
 setKickstartEnvVars:
-    lea    ($1000000),a0        ; Kickstart end address
-    sub.l  -20(a0),a0          ; Sub kickstart length
+    lea    ($1000000),a0  ; Kickstart end address
+    sub.l  -20(a0),a0     ; Sub kickstart length
     add.w  #12,a0
-    move.w (a0)+,d5             ; Version resides at +12
-    move.w (a0),d6              ; Revision resides at +14
+    move.w (a0)+,d5       ; Version resides at +12
+    move.w (a0),d6        ; Revision resides at +14
     ; On KS < 1.2, this mechanism will not work and both
     ; KickVer and KickRev are $ffff (-1).
-    ; We detect that here and fetch the version via
-    ; _LVOSoftVer of EXEC.
-    bpl.b .setEnvVar             ; test sign of last move
-    movea.l EXEC_BASE,a0         ; get exec base in A0
-    move.w  _LVOSoftVer(a0),d5  ; get KS version
+    bpl.b .setEnvVar      ; test sign of last move
+
+    ; On KS < 1.2, we detect that here and fetch the version
+    ; via _LVOSoftVer of EXEC.
+    movea.l EXEC_BASE,a0            ; get exec base in A0
+    move.w  _LVOSoftVer(a0),d5      ; get KS version
     SET_VERSION_ENV_VAR KickVer,d5
     SET_ENV_VAR KickRev
     rts
@@ -432,7 +432,7 @@ setCPUAndFPUEnvVars:
     moveq   #"0",d1    ; it must be 68000    
     
 .storeCPU:
-    move.b  d1,.CPUStr+3  ; store digit in var
+    move.b  d1,.CPUStr+3             ; store digit in var
     SET_ENV_VAR_CLEN CPU,#.CPUStr,5
 
 ; Get FPU    
@@ -448,7 +448,7 @@ setCPUAndFPUEnvVars:
     moveq   #0,d3
     bra.b .setFPUEnvVar
 .storeInternal
-    move.l  #"inte",(a0)  ; "internal"
+    move.l  #"inte",(a0)    ; "internal"
     moveq   #8,d3
     bra.b .setFPUEnvVar
 .store68882
@@ -512,7 +512,7 @@ setChipsetAndVFreqEnvVars:
     bhi.b   .getVFreq
 
 .storeChipset:
-    lsl.l   #8,d5                 ; zero-terminate
+    lsl.l   #8,d5           ; zero-terminate
     move.l  d5,.ChipsetStr                  
 
 .getVFreq:
@@ -562,18 +562,18 @@ setChipsetAndVFreqEnvVars:
 ; Potentially overwrites all registers, except A6
 ;-----------------------------------------------------------
 setBSDSockLibEnvVars:
-    move.l a6,a2                    ; Preserve A6 in A2
+    move.l a6,a2                     ; Preserve A6 in A2
     OPEN_LIBRARY #.BSDSockLibName,0
     beq  .notOpened
 
     ; Fetch infos
-    move.l d0,a1                  ; bsdsocket lib ref in A1
+    move.l d0,a1                 ; bsdsocket lib ref in A1
     lea.l EXEC_O_LIB_VER(a1),a0  ; Get lib version member
-    move.w (a0)+,d5               ; store version in D5
-    move.w (a0)+,d6               ; store revision in D6
-    movea.l (a0),a3               ; store id string in A3
-    CLOSE_LIBRARY a1               ; Close lib before SET_ENV_VAR
-    move.l a2,a6                  ; restoring A6 from A2
+    move.w (a0)+,d5              ; store version in D5
+    move.w (a0)+,d6              ; store revision in D6
+    movea.l (a0),a3              ; store id string in A3
+    CLOSE_LIBRARY a1             ; Close before setting var.
+    move.l a2,a6                 ; restoring A6 from A2
 
     ; Set variables
     SET_VERSION_ENV_VAR BSDSockLibVer,d5
@@ -583,7 +583,7 @@ setBSDSockLibEnvVars:
 
 .notOpened
     ; We set the environment variables without content
-    move.l a2,a6                    ; restoring A6 from A2
+    move.l a2,a6               ; restoring A6 from A2
     SET_ENV_VAR BSDSockLibVer
     SET_ENV_VAR BSDSockLibRev
     SET_ENV_VAR BSDSockLib
@@ -640,9 +640,9 @@ _LVOFindName     = -276
 ; holds three words: major,; minor and revision
 
     movea.l a6,a4 ; preserve A6 (needed for SysBase)   
-    movea.l EXEC_BASE,a6              ; get exec base in A6
+    movea.l EXEC_BASE,a6             ; get exec base in A6
     lea     _LVOResourceList(a6),a0  ; arg1 resource list
-    lea     .UaeResName,a1            ; arg2 resource name
+    lea     .UaeResName,a1           ; arg2 resource name
     jsr     _LVOFindName(a6)         ; call FindName
     movea.l a4,a6 ; restore A6
 
@@ -715,7 +715,7 @@ versionToString:
     lea.l .VerNumStrBuff,a1
     move.l d2,(a1)           ; Put all 4 characters at once
     move.b d3,d0             ; char count returned in D0
-    movem.l (sp)+,d2/d3    ; restore D2 and D3
+    movem.l (sp)+,d2/d3      ; restore D2 and D3
 
     rts
 
@@ -770,7 +770,7 @@ strlen:
 setEnvVar:
     cmp.w #36,EXEC_O_LIB_VER(a6)
     bls.b setenv
-    move.l  #GVF_LOCAL_ONLY,d4  ; scope is local to script
+    move.l  #GVF_LOCAL_ONLY,d4    ; scope is local to script
     jmp _LVOSetVar(a6)
 
     section Code,code
@@ -804,7 +804,7 @@ setenv:
     movea.l d1,a1   ; restore A! to start of name
     addq.b  #5,d0   ; Add 5 (for "ENV:" and '\0')
 
-    move.l sp,a4   ; preserve sp
+    move.l sp,a4                   ; preserve sp
     CREATE_ALIGNED_STACK_FRAME d0
 
 ; 2. Put env. var. path at the beginning of the stack frame
@@ -834,9 +834,10 @@ setenv:
     move.l a3,a1      ; arg1 for strlen
     bsr    strlen
     move.l d0,d3      ; now we have the length in D3
+
 .callWrite    
-    move.l d4,d1      ; arg1: env. var. filehandle
-    move.l a3,d2      ; arg2: content ref.
+    move.l d4,d1       ; arg1: env. var. filehandle
+    move.l a3,d2       ; arg2: content ref.
     jsr _LVOWrite(a6)
     cmp.l d0,d3
     bne.b .error
@@ -864,16 +865,17 @@ setenv:
 ;
 ; IN: D1 - Environment Variable Name Address
 printSetEnvVarErrMsg:
-    movem.l d2-d4/a4,-(sp)   ; preserve used registers
+    movem.l d2-d4/a4,-(sp)  ; preserve used registers
     move.l  d1,d2
     jsr     _LVOOutput(a6)  ; obtain stdout in D0
     bne.b   .write
     rts
+
 .write
-    move.l  d0,d4            ; preserve stdout to D4
+    move.l  d0,d4  ; preserve stdout to D4
 ; 1. get total length of env variable path
-    move.l d2,a1             ; Arg1 for strlen
-    bsr   strlen ; get length in D0
+    move.l d2,a1   ; Arg1 for strlen
+    bsr   strlen   ; get length in D0
 
     ; Add msg len and 1 for LF
     addi.b  #.MsgPreEnd-.MsgPre+1,d0
@@ -889,7 +891,7 @@ printSetEnvVarErrMsg:
     cmp.l  #.MsgPreEnd,a1
     bne.b .copyPre
 
-    movea.l d2,a1  ; restore A1 to start of name
+    movea.l d2,a1           ; restore A1 to start of name
 .copyVarName
     move.b (a1)+,(a0)+
     bne.b .copyVarName
@@ -897,8 +899,8 @@ printSetEnvVarErrMsg:
     move.l d4,d1
     move.l sp,d2
     jsr    _LVOWrite(a6)
-    move.l a4,sp             ; give back aligned stack frame
-    movem.l (sp)+,d2-d4/a4   ; restore used registers
+    move.l a4,sp            ; give back aligned stack frame
+    movem.l (sp)+,d2-d4/a4  ; restore used registers
 .end
     rts
 

@@ -2,6 +2,7 @@ build
 test/harddisk/sysvars
 test/harddisk/C
 test/harddisk/L
+test/harddisk/T
 .DS_Store
 bin
 .vscode/settings.json

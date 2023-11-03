@@ -8,7 +8,7 @@ ECHO "           (___//_/ |___/  V_/     |_|  (___/ "
 ECHO ""
 ECHO "Setting up..."
 
-; Due to unclear rights situation, you must provide the required commands
+; Due to unclear IP situation, you must provide the required commands
 ; (e.g., from Workbench 1.3)
 ; For OS 1.x, you also need the L:Ram-Handler to work with the RAM:
 
