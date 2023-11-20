@@ -1,8 +1,9 @@
 build
-test/harddisk/sysvars
-test/harddisk/C
-test/harddisk/L
-test/harddisk/T
+test/echo-test/sysvars
+test/echo-test/ksge36
+test/echo-test/c
+test/echo-test/l
+test/echo-test/OS1.3-Support
 .DS_Store
 bin
 .vscode/settings.json

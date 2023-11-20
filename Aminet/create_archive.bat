@@ -1,12 +1,12 @@
-t:: Creates Aminet package
+:: Creates Aminet package
 ::
-:: Asks for author and uploader information during this process
-:: Also, we first assume the executables for VASM, VLINK and LHA are in PATH.
-:: If they are not, the user must specify them
-
+:: You can provide author and uploader information via command line arguments or this script will ask you for it.
 @ECHO OFF
 
+SET author=%1
+SET uploader=%2
 
+:: You must either have these in %PATH% or you will be asked for their location
 SET vasmm68k_mot=vasmm68k_mot
 SET vlink=vlink
 SET lha=lha
@@ -16,10 +16,9 @@ CALL :CHECK_EXE_PATH %vlink%
 CALL :CHECK_EXE_PATH %lha%
 
 SET deploy_path=%~dp0deploy
+SET root_path=%~dp0..
 
-SET author=%1
-SET uploader=%2
-
+:: This regex should match Aminet's requirements of: <e-mail><space><left parenthesis><full name><right parenthesis>
 SET author_uploader_check_regex=^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,6} \([A-Z][a-z]+( [A-Za-z])*\)$
 
 :AUTHOR_REQUEST
@@ -44,30 +43,47 @@ IF "%uploader%"==""  goto :UPLOADER_REQUEST
 
 MKDIR "%deploy_path%" >NUL 2>&1
 IF NOT EXIST "%deploy_path%\" GOTO :ERROR
-DEL "%deploy_path%\sysvars.lha" >NUL:
+IF EXIST "%deploy_path%\sysvars.lha" (
+  ECHO Deleting old sysvars.lha
+  DEL "%deploy_path%\sysvars.lha"
+  IF EXIST "%deploy_path%\sysvars.lha" GOTO :ERROR
+)
+IF EXIST "%deploy_path%\sysvars.readme" (
+  ECHO Deleting old sysvars.readme
+  DEL "%deploy_path%\sysvars.readme"
+  IF EXIST "%deploy_path%\sysvars.readme" GOTO :ERROR
+)
 
 :UNIQUE_TMP_DIR_NAME
 SET "tmp_dir=%TMP%\sysvars_tmp_%RANDOM%"
 if EXIST "%tmp_dir%" goto :uniqLoop
-MKDIR "%tmp_dir%\source" >NUL: || GOTO :ERROR
+MKDIR "%tmp_dir%" || GOTO :ERROR
 ECHO Working in temporary directory "%tmp_dir%"
 PUSHD "%tmp_dir%"
+MKDIR "sysvars" || GOTO :ERROR
+MKDIR "sysvars\source" || GOTO :ERROR
 
-ROBOCOPY "%~dp0..\source" "source" /MIR
-IF ERRORLEVEL 8 THEN GOTO :ERROR
+ROBOCOPY "%root_path%\test\echo-test" "sysvars" /MIR /xd l c OS1.3-Support
+if errorlevel 8 GOTO :ERROR
+COPY "%~dp0dir.info" "sysvars.info" || GOTO :ERROR
+
+ROBOCOPY "%root_path%\source" "sysvars\source" /MIR
+if errorlevel 8 GOTO :ERROR
 
 ECHO Assembling...
-"%vasmm68k_mot%" -m68000 -kick1hunks -chklabels -Fhunk -nosym -wfail -warncomm -x "source\sysvars.s" -o sysvars.o || GOTO :ERROR
+"%vasmm68k_mot%" -m68000 -kick1hunks -chklabels -Fhunk -nosym -wfail -warncomm -x "sysvars\source\sysvars.s" -o sysvars.o || GOTO :ERROR
+"%vasmm68k_mot%" -m68000 -kick1hunks -chklabels -Fhunkexe -nosym -wfail -warncomm -x "sysvars\source\ksge36.s" -o sysvars\ksge36 || GOTO :ERROR
 ECHO Linking...
-"%vlink%" -b amigahunk -B static sysvars.o -o sysvars || GOTO :ERROR
+"%vlink%" -b amigahunk -B static sysvars.o -o "sysvars\sysvars" || GOTO :ERROR
 DEL sysvars.o
 
 ECHO Generating readme...
-powershell -Command "(gc '%~dp0sysvars.readme') -replace '\$author\$', '%author%' -replace '\$uploader\$', '%uploader%' | Out-File -encoding ASCII sysvars.readme" || GOTO :ERROR
+powershell -Command "(gc '%~dp0sysvars.readme') -replace '\$author\$', '%author%' -replace '\$uploader\$', '%uploader%' | Out-File -encoding ASCII 'sysvars\sysvars.readme'" || GOTO :ERROR
 
-COPY sysvars.readme "%deploy_path%" || GOTO :ERROR
+COPY "sysvars\sysvars.readme" "%deploy_path%" || GOTO :ERROR
+
 ECHO LHA Crunching...
-"%lha%" a -o5 "%deploy_path%\sysvars.lha" sysvars sysvars.readme source || GOTO :ERROR
+"%lha%" a -rxo5 "%deploy_path%\sysvars.lha" sysvars sysvars.info || GOTO :ERROR
 
 CALL :CLEANUP
 EXIT /b 0

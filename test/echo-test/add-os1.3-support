@@ -1,0 +1,63 @@
+IF EXISTS C:COPY
+ RESIDENT CP C:Copy PURE
+ RESIDENT MD C:Makedir PURE
+ELSE
+ RESIDENT CP Workbench1.3:c/Copy
+ RESIDENT MD Workbench1.3:c/Makedir
+ENDIF
+
+IF EXISTS C:ECHO
+ RESIDENT ECHO C:ECHO
+ RESIDENT IF C:IF PURE
+ RESIDENT ELSE C:ELSE PURE
+ RESIDENT ENDIF C:ENDIF PURE
+ENDIF
+
+IF NOT EXISTS sysvars
+ ECHO "Missing sysvars, ensure the script is esecuted in the right directory!"
+ENDIF
+IF NOT EXISTS ksge36
+ ECHO "Missing ksge36, ensure the script is esecuted in the right directory!"
+ENDIF
+
+ECHO "Creating directories..."
+IF NOT EXISTS c
+ MD c
+ENDIF
+IF NOT EXISTS l
+ MD l
+ENDIF
+
+IF NOT EXISTS OS1.3-Support
+ MD OS1.3-Support
+ENDIF
+
+IF NOT EXISTS OS1.3-Support/c
+ MD OS1.3-Support/c
+ENDIF
+
+ECHO "Copying Commands from Workbench1.3:"
+
+ECHO " -> Copy" NOLINE
+CP Workbench1.3:c/Copy c/ CLONE
+CP Workbench1.3:c/Copy OS1.3-Support/c/ CLONE
+ECHO ", Echo" NOLINE
+CP Workbench1.3:c/Echo c/ CLONE
+CP Workbench1.3:c/Echo OS1.3-Support/c/ CLONE
+ECHO ", If" NOLINE
+CP Workbench1.3:c/If c/ CLONE
+CP Workbench1.3:c/If OS1.3-Support/c/ CLONE
+ECHO ", Else" NOLINE
+CP Workbench1.3:c/Else OS1.3-Support/c/ CLONE
+ECHO ", Endif" NOLINE
+CP Workbench1.3:c/Endif TO OS1.3-Support/c/ CLONE
+ECHO ", Makedir" NOLINE
+CP Workbench1.3:c/Makedir TO OS1.3-Support/c/ CLONE
+ECHO ", Assign" NOLINE
+CP Workbench1.3:c/Assign TO OS1.3-Support/c/ CLONE
+ECHO " -> done"
+ECHO "Copying Ram-Handler..." NOLINE
+CP Workbench1.3:l/Ram-Handler TO l/ CLONE
+ECHO " -> done"
+ECHO " "
+ECHO "Successfully added OS 1.2/1.3 Support"

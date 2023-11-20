@@ -9,28 +9,59 @@
 				"args": [
 					"-m68000",
 					"-Fhunk",
+					"-nosym"
+				]
+			},
+			"vlink": {
+				"enabled": true,
+				"command": "${config:amiga-assembly.binDir}/vlink",
+				"includes": "source/ksge36.S",
+				"excludes": "",
+				"createStartupSequence": true,
+				"createExeFileParentDir": true,
+				"exefilename": "../test/echo-test/ksge36",
+				"args": [
+					"-bamigahunk",
+					"-Bstatic"
+				]
+			},
+			"label": "ksge36 build",
+			"group": {
+				"kind": "build",
+				"isDefault": false
+			}
+		},		
+		{
+			"type": "amigaassembly",
+			"vasm": {
+				"enabled": true,
+				"command": "${config:amiga-assembly.binDir}/vasmm68k_mot",
+				"args": [
+					"-m68000",
+					"-Fhunk",
 					"-linedebug"
 				]
 			},
 			"vlink": {
 				"enabled": true,
 				"command": "${config:amiga-assembly.binDir}/vlink",
-				"includes": "source/*.{s,S,asm,ASM}",
+				"includes": "source/sysvars.S",
 				"excludes": "",
 				"createStartupSequence": true,
 				"createExeFileParentDir": true,
-				"exefilename": "../test/harddisk/sysvars",
+				"exefilename": "../test/echo-test/sysvars",
 				"args": [
 					"-bamigahunk",
 					"-Bstatic"
 				]
 			},
 			"problemMatcher": [],
-			"label": "amigaassembly: build",
+			"label": "sysvars Debug Build",
 			"group": {
 				"kind": "build",
 				"isDefault": false
-			}
+			},
+			"dependsOn": ["ksge36 build"]
 		},
 		{
 			"type": "amigaassembly",
@@ -46,22 +77,23 @@
 			"vlink": {
 				"enabled": true,
 				"command": "${config:amiga-assembly.binDir}/vlink",
-				"includes": "source/*.{s,S,asm,ASM}",
+				"includes": "source/sysvars.S",
 				"excludes": "",
 				"createStartupSequence": true,
 				"createExeFileParentDir": true,
-				"exefilename": "../test/harddisk/sysvars",
+				"exefilename": "../test/echo-test/sysvars",
 				"args": [
 					"-bamigahunk",
 					"-Bstatic"
 				]
 			},
 			"problemMatcher": [],
-			"label": "amigaassembly: release build",
+			"label": "sysvars Release Build",
 			"group": {
 				"kind": "build",
 				"isDefault": false
-			}
+			},
+			"dependsOn": ["ksge36 build"]
 		}
 	]
 }

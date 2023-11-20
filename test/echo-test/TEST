@@ -1,0 +1,2 @@
+execute s/startup-sequence
+WAIT 10

@@ -1,6 +1,6 @@
 ************************************************************
 *                                                          *
-*                     SYSVARS V.0.10.0                     *
+*                      SYSVARS V.0.11                      *
 *                                                          *
 * SPDX-FileCopyrightText: (c) 2023 Lars Stockmann          *
 * SPDX-License-Identifier: MIT                             *
@@ -17,10 +17,16 @@
 ; Comment out to disable environment variable
 ; You can also disable them on the command line like so:
 ; -DDISABLE_CPU
+    section Code,code
+    section Strings,code
+    dc.b 0,"$VER: SYSVARS 0.11 (20.11.2023)",0
+    section Code,code
 
 ENABLE: macro
     ifnd DISABLE_\1
-ENABLE_\1 = 1
+E_\1 = 1    
+    else
+E_\1 = 0
     endif
     endm
 
@@ -46,9 +52,13 @@ ENABLE_\1 = 1
 FALSE     =  0
 TRUE      = -1
 
-; Global registers
+; Global registers and offsets
 
 VPOSR = $dff004
+
+KS_END            = $1000000
+KS_END_OFFSET_LEN = -20
+KS_VER_OFFSET     = 12
 
 ; Exec Constants and _LVOs
 
@@ -88,7 +98,7 @@ GVF_LOCAL_ONLY = $200
 ; 1: Environment variable name (symbolic)
 ;-----------------------------------------------------------
 DEFINE_ENV_VAR_NAME: macro
-    ifd ENABLE_\1              ; if not enabled, do not set
+    if E_\1              ; if not enabled, do not set
     \1EnvVarName: dc.b "\1",0
     endif
     endm
@@ -108,12 +118,12 @@ DEFINE_ENV_VAR_NAME: macro
 ; Potentially overwrites: D0, D1, D2, D3, A0, A1
 ;-----------------------------------------------------------
 SET_ENV_VAR: macro
-    ifd ENABLE_\1             ; if not enabled, do not set
-    move.l #\1EnvVarName,d1   ; arg1: name address
+    if E_\1                     ; if not enabled, do not set
+    move.l #\1EnvVarName,d1     ; arg1: name address
     if NARG>1
-    move.l \2,d2              ; arg2: content address
+    move.l \2,d2                ; arg2: content address
         if NARG>2
-    move.l \3,d3              ; arg3: content length
+    move.l \3,d3                ; arg3: content length
         else
     moveq #-1,d3
         endif
@@ -142,7 +152,7 @@ SET_ENV_VAR: macro
 ; Potentially overwrites: D0, D1, D2, D3, A0, A1
 ;-----------------------------------------------------------
 SET_ENV_VAR_CLEN: macro
-    ifd ENABLE_\1               ; if not enabled, do not set
+    if E_\1               ; if not enabled, do not set
     move.l #\1EnvVarName,d1     ; arg1: name address
     ifne \3
     move.l \2,d2                ; arg2: content address
@@ -169,7 +179,7 @@ SET_ENV_VAR_CLEN: macro
 ; Potentially overwrites: D0, D1, D2, D3, A0, A1
 ;-----------------------------------------------------------
 SET_VERSION_ENV_VAR: macro
-    ifd ENABLE_\1            ; if not enabled, do not set
+    if E_\1            ; if not enabled, do not set
     move.w \2,d1
     bsr    versionToString
     SET_ENV_VAR \1,a1,d0
@@ -215,8 +225,9 @@ CREATE_ALIGNED_STACK_FRAME: macro
 ; Overwrites A6 if no 3. argument is given to preserve it
 ;-----------------------------------------------------------
 OPEN_LIBRARY: macro 
-    move.l  \1,a1                 ; library name
-    moveq   #\2,d0                ; version is macro param
+    move.l  \1,a1   ; library name
+    moveq   #\2,d0  ; version is macro param
+
     if NARG>2
         ifc "\3","d0"
             fail "Do not use scratch register D0!"
@@ -232,7 +243,8 @@ OPEN_LIBRARY: macro
         endif
     movea.l a6,\3
     endif
-    movea.l EXEC_BASE,a6          ; get exec base in A6
+
+    movea.l EXEC_BASE,a6         ; get exec base in A6
     jsr     _LVOOpenLibrary(a6)
     if NARG>2
     movea.l \3,a6
@@ -254,9 +266,10 @@ OPEN_LIBRARY: macro
 CLOSE_LIBRARY: macro
     if NARG>0
         IFNC "\1","a1"
-    move.l  \1,a1                  ; library pointer
+    move.l  \1,a1       ; library pointer
         endif
     endif
+
     if NARG>1
         ifc "\2","d0"
             fail "Do not use scratch register D0!"
@@ -272,54 +285,18 @@ CLOSE_LIBRARY: macro
         endif
     movea.l a6,\2
     endif
-    movea.l EXEC_BASE,a6           ; get exec base in A6
+
+    movea.l EXEC_BASE,a6          ; get exec base in A6
     jsr     _LVOCloseLibrary(a6)
     if NARG>1
     movea.l \2,a6
     endif
     endm
 
-
-IF_ENABLED: macro
-    ifd ENABLE_\1
-ENABLE_\@=1
-    endif
-    if NARG>1
-        ifd ENABLE_\2
-            ifnd ENABLE_\@
-ENABLE_\@=1
-            endif
-        endif
-    endif
-    if NARG>2
-        ifd ENABLE_\3
-            ifnd ENABLE_\@
-ENABLE_\@=1
-            endif
-        endif
-    endif
-    if NARG>3
-        ifd ENABLE_\4
-            ifnd ENABLE_\@
-ENABLE_\@=1
-            endif
-        endif
-    endif
-    if NARG>3
-        fail Too many arguments, please extent!
-    endif
-    ifd ENABLE_\@
-    endm
-
-ENDIF_ENABLED: macro
-    endif
-    endm
-
 *********************** Main Entry  ************************
-
     section Code,code
-
 main:
+
 
     ; A6 is assumed to point to dos.library throughout the
     ; program. A6 = 0 indicates that dos.library is not
@@ -330,7 +307,6 @@ main:
 
     bsr setAllVariables
 
-
     CLOSE_LIBRARY a6  ; close dos.library
     moveq   #0,d0     ; return code 0
     rts
@@ -339,10 +315,10 @@ main:
 
 DosLibName: dc.b "dos.library",0
 
-
 ************************ Kickstart *************************
 
-    IF_ENABLED KickVer,KickRev
+    if E_KickVer+E_KickRev
+    
     section Code,code
 ;-----------------------------------------------------------
 ; Determines the kickstart version and revision and puts
@@ -358,11 +334,11 @@ DosLibName: dc.b "dos.library",0
 ; Potentially overwrites all registers, except A6
 ;-----------------------------------------------------------
 setKickstartEnvVars:
-    lea    ($1000000),a0  ; Kickstart end address
-    sub.l  -20(a0),a0     ; Sub kickstart length
-    add.w  #12,a0
-    move.w (a0)+,d5       ; Version resides at +12
-    move.w (a0),d6        ; Revision resides at +14
+    lea    (KS_END),a0
+    sub.l  KS_END_OFFSET_LEN(a0),a0  ; Subtract KS length
+    add.w  #KS_VER_OFFSET,a0
+    move.w (a0)+,d5                  ; Version
+    move.w (a0),d6                   ; Revision
     ; On KS < 1.2, this mechanism will not work and both
     ; KickVer and KickRev are $ffff (-1).
     bpl.b .setEnvVar      ; test sign of last move
@@ -385,11 +361,12 @@ setKickstartEnvVars:
     DEFINE_ENV_VAR_NAME KickVer
     DEFINE_ENV_VAR_NAME KickRev
 
-    ENDIF_ENABLED
+    endif
 
 ************************ CPUAndFPU *************************
 
-    IF_ENABLED CPU,FPU
+    if E_CPU+E_FPU
+    
     section Code,code
 ;-----------------------------------------------------------
 ; Determines the CPU and FPU type and writes it into
@@ -474,11 +451,12 @@ setCPUAndFPUEnvVars:
     DEFINE_ENV_VAR_NAME CPU
     DEFINE_ENV_VAR_NAME FPU
 
-    ENDIF_ENABLED
+    endif
 
 ********************* ChipsetAndVFreq **********************
 
-    IF_ENABLED Chipset,VFreq
+    if E_Chipset+E_VFreq
+
     section Code,code
 ;-----------------------------------------------------------
 ; Determines the availble chipset (OCS, ECS, AGA) and the
@@ -541,11 +519,12 @@ setChipsetAndVFreqEnvVars:
     DEFINE_ENV_VAR_NAME Chipset
     DEFINE_ENV_VAR_NAME VFreq
 
-    ENDIF_ENABLED
+    endif
 
 ************************ BSDSockLib ************************
 
-    IF_ENABLED BSDSockLibVer,BSDSockLibRev,BSDSockLib
+    if E_BSDSockLibVer+E_BSDSockLibRev+E_BSDSockLib
+    
     section Code,code
 ;-----------------------------------------------------------
 ; Checks if bsdsocket.library is available and if so, puts
@@ -562,28 +541,46 @@ setChipsetAndVFreqEnvVars:
 ; Potentially overwrites all registers, except A6
 ;-----------------------------------------------------------
 setBSDSockLibEnvVars:
-    move.l a6,a2                     ; Preserve A6 in A2
-    OPEN_LIBRARY #.BSDSockLibName,0
+    OPEN_LIBRARY #.BSDSockLibName,0,a5
     beq  .notOpened
 
     ; Fetch infos
-    move.l d0,a1                 ; bsdsocket lib ref in A1
-    lea.l EXEC_O_LIB_VER(a1),a0  ; Get lib version member
+    move.l d0,a4                 ; preserve bsdsocketLib ref
+    lea.l EXEC_O_LIB_VER(a4),a0  ; Get lib version member
     move.w (a0)+,d5              ; store version in D5
     move.w (a0)+,d6              ; store revision in D6
-    movea.l (a0),a3              ; store id string in A3
-    CLOSE_LIBRARY a1             ; Close before setting var.
-    move.l a2,a6                 ; restoring A6 from A2
+    move.l (a0),d7               ; store id string in D7
+
+    ; Note: For some reason, under the AROS ROM, SetVar
+    ;       cannot access the id string directly, so we must
+    ;       copy it to stack first
+    move.l sp,a3  ; preserver SP
+    move.l d7,a1  ; Arg1 for strlen (id string)
+    bsr strlen
+    move.l d0,d4  ; preserve the length for subsequent calls
+    ; make the length in D0 word-aligned
+    neg.l d0
+    asr.l #1,d0
+    add.l d0,d0
+    add.l d0,sp   ; create stack frame
+    move.l sp,a0  ; get start of stack frame into A0
+    move.l d7,a1  ; get id string again into A1 for copy
+.copyIdString
+    move.b (a1)+,(a0)+
+    bne.s .copyIdString
+
+    CLOSE_LIBRARY a4,a5
 
     ; Set variables
     SET_VERSION_ENV_VAR BSDSockLibVer,d5
     SET_VERSION_ENV_VAR BSDSockLibRev,d6
-    SET_ENV_VAR_CLEN BSDSockLib,a3,-1
+    SET_ENV_VAR BSDSockLib,sp,d4
+
+    move.l a3,sp; restore SP
     rts
 
 .notOpened
     ; We set the environment variables without content
-    move.l a2,a6               ; restoring A6 from A2
     SET_ENV_VAR BSDSockLibVer
     SET_ENV_VAR BSDSockLibRev
     SET_ENV_VAR BSDSockLib
@@ -591,13 +588,14 @@ setBSDSockLibEnvVars:
 
     section Strings,code
 
+.test: dc.b "UAE bsdsocket.library 4.1",0
 .BSDSockLibName: dc.b "bsdsocket.library",0
 
     DEFINE_ENV_VAR_NAME BSDSockLibVer
     DEFINE_ENV_VAR_NAME BSDSockLibRev
     DEFINE_ENV_VAR_NAME BSDSockLib
 
-    ENDIF_ENABLED
+    endif
 
 ************************** Memory **************************
 ; TODO
@@ -613,7 +611,8 @@ setBSDSockLibEnvVars:
 
 **************************** UAE ***************************
 
-    IF_ENABLED UAEMajor,UAEMinor,UAERev
+    if E_UAEMajor+E_UAEMinor+E_UAERev
+    
     section Code,code
 ;-----------------------------------------------------------
 ; Writes the hosting UAE's major version, minor version and
@@ -673,7 +672,7 @@ _LVOFindName     = -276
     DEFINE_ENV_VAR_NAME UAEMinor
     DEFINE_ENV_VAR_NAME UAERev
 
-    ENDIF_ENABLED
+    endif
 
 *********************  String Utils  ***********************
 
@@ -770,8 +769,12 @@ strlen:
 setEnvVar:
     cmp.w #36,EXEC_O_LIB_VER(a6)
     bls.b setenv
-    move.l  #GVF_LOCAL_ONLY,d4    ; scope is local to script
-    jmp _LVOSetVar(a6)
+    move.l d4,-(sp)             ; preserve D4
+    move.l  #GVF_LOCAL_ONLY,d4  ; scope is local to script
+    jsr _LVOSetVar(a6)
+    move.l (sp)+,d4             ; restore D4
+    move d0,d0                  ; restore SR
+    rts
 
     section Code,code
 ;-----------------------------------------------------------
