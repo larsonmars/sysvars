@@ -588,7 +588,6 @@ setBSDSockLibEnvVars:
 
     section Strings,code
 
-.test: dc.b "UAE bsdsocket.library 4.1",0
 .BSDSockLibName: dc.b "bsdsocket.library",0
 
     DEFINE_ENV_VAR_NAME BSDSockLibVer
@@ -859,12 +858,12 @@ setenv:
     movem (sp)+,.PRESERVED_REGS  ; restore registers
     rts
 
-******************* SET_ENV_VAR Error Message *******************
+**************** SET_ENV_VAR Error Message *****************
 
     section Code,code
 ;-----------------------------------------------------------
-; Prints a message that shows that SET_ENV_VAR has failed for
-; an environment variable name
+; Prints a message that shows that SET_ENV_VAR has failed
+; for an environment variable name
 ;
 ; IN: D1 - Environment Variable Name Address
 printSetEnvVarErrMsg:
