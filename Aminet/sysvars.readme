@@ -2,7 +2,7 @@ Short:        Put system information in env. variables
 Uploader:     $uploader$
 Author:       $author$
 Type:         util/boot
-Version:      0.11
+Version:      0.12
 Architecture: m68k-amigaos >= 1.3
 Distribution: Aminet
 Kurz:         Legt System infos in Umgebungsvariablen
@@ -63,9 +63,8 @@ _____________________________________________________________________________
 
 NOTES
 
-- 68080 (Vampire) support for the CPU is untested/experimental
-- SAGA (Vampire) support is not yet available. I do not own one, so I do not
-  know what VPOSR might be on the Vampire.
+- 68080 and SAGA (Vampire) detection implemented following
+  http://adevnoo.wikidot.com/detect-080-code.
 - UAE is detected via the uae.resource, which is only there if a virtual hard
   drive or another UAE expansion to be enabled. Thus, detection will fail on
   floppy-only-unexpanded Amiga configurations
@@ -131,7 +130,6 @@ which I want to fix in future versions (no particular order):
 - Add $RTG variable to enable/disable stuff like FBlit or swap screen mode
   configurations
 - For Os 1.3: add detection for CPUs > 68020 and at least the 68882
-- Add full support for Vampire
 - Make use of boards.library and identify.library if available for even more
   expansions.
 - Make a WinUAE/FS-UAE-based test suite for automated tests (CI/CD-like)
@@ -145,6 +143,12 @@ The code is licensed under the MIT License
 _____________________________________________________________________________
 
 RELEASE HISTORY
+
+Version 0.12
+- Added 68080 and SAGA (Vampire) support following
+  http://adevnoo.wikidot.com/detect-080-code
+- minor code cleanup
+
 Version 0.11
 - Added the tiny tool KSGE36 to the distribution
   - Stands for KickStart greater or equal 36
