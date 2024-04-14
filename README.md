@@ -17,7 +17,7 @@ Currently, the following variables are set:
 
 # Requirements
 
-The tool works best with Amiga OS 2.0 or later. Here, it calls ``SetVar``, which allows for local scope variables. Local scope is no limitiation, because the workbench is also loaded in the scope of the startup-sequence. Another advantage is that it does not require ENV:. This means it can run very early, even before SetPatch.
+The tool works best with Amiga OS 2.0 or later. Here, it calls ``SetVar``, which allows for local scope variables. Local scope is no limitation, because the workbench is also loaded in the scope of the startup-sequence. Another advantage is that it does not require ENV:. This means it can run very early, even before SetPatch.
 
 However, for the purists, sysvars runs happily also on OS 1.3 and even down to OS 1.1. However, there are some limitations to consider
 - In OS 1.3 and below, sysvars will currently detect CPUs above 68020 as 68020 and any FPUs as 68881.
@@ -26,15 +26,15 @@ However, for the purists, sysvars runs happily also on OS 1.3 and even down to O
 - Below OS 1.3, UAE detection does not work
 - Below OS 1.3, the IF command does not support environment variables. You must use the IF command from Workbench 1.3. Also, only EQ (equal) seems to work here.
 
-[^1]: On OS 1.3 and below, CPUs > 68020 are currently detected as 68020. Also, 68080 (Vampire) detection for the CPU is experimental, I do not own one, so I cannot test it
+[^1]: On OS 1.3 and below, CPUs > 68020 are currently detected as 68020. 68080 (Vampire) detection is implemented following http://adevnoo.wikidot.com/detect-080-code
 [^2]: On OS 1.3 and below, all FPUs are detected as 68881.
-[^3]: SAGA (Vampire) support is not yet available. I do not own one, so I do not know what ``VPOSR`` might be on the Vampire.
+[^3]: Since version 0.12, SAGA (Vampire) detection is implemented following http://adevnoo.wikidot.com/detect-080-code
 [^4]: Workbench 2.0 and above 
 [^5]: UAE is detected via the uae.resource, which is only there if a virtual hard drive or another UAE expansion to be enabled. Thus, detection will fail on floppy-only-unexpanded Amiga configurations.
 
 # Installing
 
-1. Copy sysvars to your harddisk or floppydisk (e.g., in the c directory)
+1. Copy sysvars to your hard or floppy disk drive (e.g., in the c directory)
 2. Add it to your startup-sequence or User-Startup
    - For OS 2.0 or greater there is no issue to call sysvars very early, even before SetPatch
    - For OS 1.3 and OS 1.2, you must ensure that ENV: exists prior running sysvars (see [previous section](#Requirements))
@@ -80,38 +80,5 @@ The tool is already quite useable, but there are still some things missing, whic
 - Add memory-related variables, such as ``$Chipmem``, ``$Fastmem``, and ``$Slowmem`` (especially to distinguish Amiga 5000 trapdoor/slow memory from actual Z2/Z3 Fast memory)
 - Add ``$RTG`` variable to enable/disable stuff like FBlit or swap screen mode configurations
 - For Os 1.3: add detection for CPUs > 68020 and at least the 68882
-- Add full support for Vampire
 - Make use of boards.library and identify.library if available for even more expansions.
 - Make a WinUAE/FS-UAE-based test suite for automated tests (CI/CD-like)
-
-# Release History
-## Version 0.11
-- Added the tiny tool KSGE36 to the distribution
-  - Stands for KickStart greater or equal 36
-  - Tests if the current OS is at least version 36 (i.e., OS 2.0)
-  - Used in the test script to decide if an ENV: assign is necessary (which is for OS below 2.0) and commands have to be made resident (see below)
-  - It is more or less equivalent to calling `Version 36` from Workbench, with the difference that it can be freely distributed (unlike the Version command) and also works below OS 1.3
-- Improved the speed of the test script in OS1.2 and OS1.3 by putting the `ECHO`, `IF`, `ELSE`, and `ENDIF` commands into RAM (via resident if in shell)
-- The test (in test/echo-test) can be run from workbench or deployed on a bootable floppy for real Amigas. The script ``CreateTestDisk`` can be called with a device name (e.g., ``df1:``) to create such a disk
-- Fix for AROS (here, SetVar cannot access the bsdsocket.library id string)
-- Code builds with most ASM-One flavors again.
-- Added version information so you can call ``Version sysvars``[^6]
-- Code/comment cleanup
-
-[^6]: Note that the Version command of OS 3.1 has a Y3K Bug and will show a wrong date
-
-## Version 0.10
-- Added ``$KickVer`` and ``$KickEnv`` that provide kickstart version and revision
-- ``$UAE`` is now split in ``$UAEMajor``, ``$UAEMinor`` and ``$UAERev`` for more convenient scripting
-- Added detection of bsdsocket.library (``$BSDSockLib`` contains the id string, ``$BSDSockLibVer`` the version, and ``$BSDSockRev`` the revision)
-- Refactoring and code improvements (still learning though)
-  - Easy way to disable certain variables/features at the beginning of the file using constants (Adapt to your need and make the tool as tiny as possible)
-  - Unified SetVar approach using macros
-  - Easier integration of new features via consistent scheme
-  - Better comments
-- added test script for startup-sequence
-## Version 0.9
-- Added limited OS 1.3 Support (CPU/FPU detection up to 68020/68881) via a custom SetVar implementation (setenv-like functionality)
-- small code improvements
-## Version 0.8
-- Initial Release on GitHub and Aminet
