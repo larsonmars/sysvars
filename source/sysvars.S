@@ -1,6 +1,6 @@
 ************************************************************
 *                                                          *
-*                      SYSVARS V.0.11                      *
+*                      SYSVARS V.0.12                      *
 *                                                          *
 * SPDX-FileCopyrightText: (c) 2023 Lars Stockmann          *
 * SPDX-License-Identifier: MIT                             *
@@ -19,7 +19,7 @@
 ; -DDISABLE_CPU
     section Code,code
     section Strings,code
-    dc.b 0,"$VER: SYSVARS 0.11 (20.11.2023)",0
+    dc.b 0,"$VER: SYSVARS 0.12 (14.04.2024)",0
     section Code,code
 
 ENABLE: macro
@@ -54,7 +54,8 @@ TRUE      = -1
 
 ; Global registers and offsets
 
-VPOSR = $dff004
+VPOSR  = $dff004
+POTGOR = $dff016
 
 KS_END            = $1000000
 KS_END_OFFSET_LEN = -20
@@ -152,7 +153,7 @@ SET_ENV_VAR: macro
 ; Potentially overwrites: D0, D1, D2, D3, A0, A1
 ;-----------------------------------------------------------
 SET_ENV_VAR_CLEN: macro
-    if E_\1               ; if not enabled, do not set
+    if E_\1                     ; if not enabled, do not set
     move.l #\1EnvVarName,d1     ; arg1: name address
     ifne \3
     move.l \2,d2                ; arg2: content address
@@ -372,6 +373,9 @@ setKickstartEnvVars:
 ; Determines the CPU and FPU type and writes it into
 ; environment variables $CPU and $FPU.
 ;
+; 68080 detection according to
+; http://adevnoo.wikidot.com/detect-080-code
+;
 ; Note: Below Kickstart 2.0, CPUs > 68020 are recognized as
 ;       68020 and all FPUs are recognized as 68881
 ;
@@ -385,11 +389,11 @@ setCPUAndFPUEnvVars:
 ; Test bits of second AttnFlags byte
     movea.l EXEC_BASE,a0           ; get exec base in A0
     move.w  _LVOAttnFlags(a0),d5  ; get cpu info in D0
-    
+
 ; D1 gets the CPU version as ASCII character that replaces
 ; the "?" in "680?0"
-    moveq   #"8",d1    ; assume 68080 (untested)
-    btst    #11,d5
+    moveq   #"8",d1    ; assume 68080
+    btst    #10,d5
     bne.b   .storeCPU
     moveq   #"6",d1    ; assume 68060
     btst    #7,d5
@@ -409,12 +413,12 @@ setCPUAndFPUEnvVars:
     moveq   #"0",d1    ; it must be 68000    
     
 .storeCPU:
-    move.b  d1,.CPUStr+3             ; store digit in var
-    SET_ENV_VAR_CLEN CPU,#.CPUStr,5
+    move.b  d1,CPUStr+3             ; store digit in var
+    SET_ENV_VAR_CLEN CPU,#CPUStr,5
 
 ; Get FPU    
 ; We lshift D0 by 1 (via add.b d0,d0) until it is negative
-    lea.l .FPUStr,a0
+    lea.l FPUStr,a0
     add.b   d5,d5
     bmi.b   .storeInternal
     add.b   d5,d5
@@ -436,15 +440,15 @@ setCPUAndFPUEnvVars:
     move.b  #"1",4(a0)
     moveq   #5,d3
 .setFPUEnvVar
-    SET_ENV_VAR FPU,#.FPUStr,d3
+    SET_ENV_VAR FPU,#FPUStr,d3
     rts
 
     section PreInitializedData,data
-.CPUStr: dc.b "680?0"
+CPUStr: dc.b "680?0"
 ; The string for the FPU is composed using a long  move.
 ; Thus the target string must be aligned accordingly
     cnop 0,4
-.FPUStr: dc.b "6888rnal"
+FPUStr: dc.b "6888rnal"
     
     section Strings,code
 
@@ -459,9 +463,12 @@ setCPUAndFPUEnvVars:
 
     section Code,code
 ;-----------------------------------------------------------
-; Determines the availble chipset (OCS, ECS, AGA) and the
-; vertical frequency (50/60) in Hz and fills the environment
-; variables $Chipset and $VFreq
+; Determines the availble chipset (OCS, ECS, AGA, SAGA) and
+; the vertical frequency (50/60) in Hz and fills the
+; environment variables $Chipset and $VFreq
+;
+; SAGA detection according to
+; http://adevnoo.wikidot.com/detect-080-code
 ;
 ;
 ; IN/OUT: A6 - dos.library reference
@@ -470,28 +477,31 @@ setCPUAndFPUEnvVars:
 ; Potentially overwrites all registers, except A6
 ;-----------------------------------------------------------
 setChipsetAndVFreqEnvVars:
+; Check SAGA via chip ID of POTGOR register
+    move.l  #"SAGA",d5
+    move.w  POTGOR,d0
+    andi.w  #$fe,d0      ; mask chip ID (bits 1-7)
+    bne     .storeChipset
+
 ; We use VPOSR to detect Agnus/Alice
     move.b  VPOSR,d1  ; get VPOSR bits
     andi.b  #$7f,d1   ; mask out LOF
     move.b d1,d0      ; bits in D0
 
 ; D5 is used to create the chipset string.
-    move.l  #"OCS",d5
+    move.l  #"OCS_"-"_",d5
     cmpi.b  #10,d0
     bls.b   .storeChipset
-    move.l  #"ECS",d5
+    move.l  #"ECS_"-"_",d5
     andi.b  #$F,d0
     cmpi.b  #1,d0
     bls.b   .storeChipset
-    move.l  #"AGA",d5
+    move.l  #"AGA_"-"_",d5
     cmpi.b  #3,d0
-    ;bls.b   .storeChipset
-    ; TODO SAGA...
     bhi.b   .getVFreq
 
 .storeChipset:
-    lsl.l   #8,d5           ; zero-terminate
-    move.l  d5,.ChipsetStr                  
+    move.l  d5,ChipsetStr                  
 
 .getVFreq:
     move.b d1,d0         ; bits in D0
@@ -499,10 +509,10 @@ setChipsetAndVFreqEnvVars:
     lsr.b  #4,d0
     andi.b #1,d0         ; 0 (PAL) 1 (NTSC)
     addi.b #'5',d0       ; "5" (PAL) "6" (NTSC)
-    move.b d0,.VFreqStr
+    move.b d0,VFreqStr
     
-    SET_ENV_VAR_CLEN Chipset,#.ChipsetStr,3
-    SET_ENV_VAR_CLEN VFreq,#.VFreqStr,2
+    SET_ENV_VAR_CLEN Chipset,#ChipsetStr,-1
+    SET_ENV_VAR_CLEN VFreq,#VFreqStr,2
     rts
 
     
@@ -511,8 +521,8 @@ setChipsetAndVFreqEnvVars:
     ; Note: ChipsetStr is cmposed using a long  move. Thus
     ;       the target string must be aligned
     cnop 0,4
-.ChipsetStr: dc.b "???",0
-.VFreqStr:   dc.b "?0"
+ChipsetStr: dc.b "?",0,0,0,0
+VFreqStr:   dc.b "?0"
 
     section Strings,code
 
@@ -541,7 +551,7 @@ setChipsetAndVFreqEnvVars:
 ; Potentially overwrites all registers, except A6
 ;-----------------------------------------------------------
 setBSDSockLibEnvVars:
-    OPEN_LIBRARY #.BSDSockLibName,0,a5
+    OPEN_LIBRARY #BSDSockLibName,0,a5
     beq  .notOpened
 
     ; Fetch infos
@@ -588,7 +598,7 @@ setBSDSockLibEnvVars:
 
     section Strings,code
 
-.BSDSockLibName: dc.b "bsdsocket.library",0
+BSDSockLibName: dc.b "bsdsocket.library",0
 
     DEFINE_ENV_VAR_NAME BSDSockLibVer
     DEFINE_ENV_VAR_NAME BSDSockLibRev
@@ -640,7 +650,7 @@ _LVOFindName     = -276
     movea.l a6,a4 ; preserve A6 (needed for SysBase)   
     movea.l EXEC_BASE,a6             ; get exec base in A6
     lea     _LVOResourceList(a6),a0  ; arg1 resource list
-    lea     .UaeResName,a1           ; arg2 resource name
+    lea     UaeResName,a1           ; arg2 resource name
     jsr     _LVOFindName(a6)         ; call FindName
     movea.l a4,a6 ; restore A6
 
@@ -665,7 +675,7 @@ _LVOFindName     = -276
 
     section Strings,code
 
-.UaeResName:  dc.b "uae.resource",0
+UaeResName: dc.b "uae.resource",0
 
     DEFINE_ENV_VAR_NAME UAEMajor
     DEFINE_ENV_VAR_NAME UAEMinor
@@ -710,7 +720,7 @@ versionToString:
     bne.b  .loop    ; until quotient is 0
 
 ; Put characters into string buffer, return
-    lea.l .VerNumStrBuff,a1
+    lea.l VerNumStrBuff,a1
     move.l d2,(a1)           ; Put all 4 characters at once
     move.b d3,d0             ; char count returned in D0
     movem.l (sp)+,d2/d3      ; restore D2 and D3
@@ -719,7 +729,7 @@ versionToString:
 
     section PreinitializedData,data
     cnop 0,4
-.VerNumStrBuff: dc.b 0,0,0,0,0
+VerNumStrBuff: dc.b 0,0,0,0,0
 
 
     section Code,code
@@ -877,20 +887,20 @@ printSetEnvVarErrMsg:
     move.l  d0,d4  ; preserve stdout to D4
 ; 1. get total length of env variable path
     move.l d2,a1   ; Arg1 for strlen
-    bsr   strlen   ; get length in D0
+    bsr    strlen  ; get length in D0
 
     ; Add msg len and 1 for LF
-    addi.b  #.MsgPreEnd-.MsgPre+1,d0
+    addi.b  #MsgPreEnd-MsgPre+1,d0
 
     move.l d0,d3                   ; preserve for Write
     move.l sp,a4                   ; preserve sp
     CREATE_ALIGNED_STACK_FRAME d3
     
-    move.l #.MsgPre,a1
+    move.l #MsgPre,a1
     move.l sp,a0
 .copyPre
     move.b (a1)+,(a0)+
-    cmp.l  #.MsgPreEnd,a1
+    cmp.l  #MsgPreEnd,a1
     bne.b .copyPre
 
     movea.l d2,a1           ; restore A1 to start of name
@@ -907,8 +917,8 @@ printSetEnvVarErrMsg:
     rts
 
     section Strings,code
-.MsgPre: dc.b "Failed to set $"
-.MsgPreEnd
+MsgPre: dc.b "Failed to set $"
+MsgPreEnd
 
 
 *************** Set All Environment Variables **************
