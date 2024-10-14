@@ -103,7 +103,7 @@ GVF_LOCAL_ONLY = $200
 ; 1: Environment variable name
 ;-----------------------------------------------------------
 DEFINE_ENV_VAR_NAME: macro
-    if E_\1              ; if not enabled, do not set
+    if E_\1                    ; if not enabled, do not set
     \1EnvVarName: dc.b "\1",0
     endif
     endm
@@ -123,12 +123,12 @@ DEFINE_ENV_VAR_NAME: macro
 ; Potentially overwrites: D0, D1, D2, D3, A0, A1
 ;-----------------------------------------------------------
 SET_ENV_VAR: macro
-    if E_\1                     ; if not enabled, do not set
-        move.l #\1EnvVarName,d1 ; arg1: name address
+    if E_\1                      ; Only set if enabled
+        move.l #\1EnvVarName,d1  ; arg1: name address
     if NARG>1
-        move.l \2,d2            ; arg2: content address
+        move.l \2,d2             ; arg2: content address
         if NARG>2
-            move.l \3,d3        ; arg3: content length
+            move.l \3,d3         ; arg3: content length
         else
             moveq #-1,d3
         endif
@@ -137,9 +137,9 @@ SET_ENV_VAR: macro
     endif
     bsr    setEnvVar
     bne    .setVarDone\@
-    move.l #\1EnvVarName,d1     ; print error
+    move.l #\1EnvVarName,d1      ; print error
     bsr    printSetEnvVarErrMsg
-    moveq  #0,d0                ; indicate error
+    moveq  #0,d0                 ; indicate error
 .setVarDone\@:
     endif
     endm
@@ -157,17 +157,17 @@ SET_ENV_VAR: macro
 ; Potentially overwrites: D0, D1, D2, D3, A0, A1
 ;-----------------------------------------------------------
 SET_ENV_VAR_CLEN: macro
-    if E_\1                      ; if not enabled, don't set
-      move.l #\1EnvVarName,d1    ; arg1: name address
+    if E_\1                       ; Only set if enabled
+      move.l #\1EnvVarName,d1     ; arg1: name address
       ifne \3
-        move.l \2,d2             ; arg2: content address
+        move.l \2,d2              ; arg2: content address
       endif
-      moveq  #\3,d3              ; arg3: content length
+      moveq  #\3,d3               ; arg3: content length
       bsr    setEnvVar
       bne.b .setVarDone\@
-      move.l #\1EnvVarName,d1    ; print error
+      move.l #\1EnvVarName,d1     ; print error
       bsr   printSetEnvVarErrMsg
-      moveq #0,d0                ; indicate error
+      moveq #0,d0                 ; indicate error
 .setVarDone\@:
     endif
     endm
@@ -183,7 +183,7 @@ SET_ENV_VAR_CLEN: macro
 ; Potentially overwrites: D0, D1, D2, D3, A0, A1
 ;-----------------------------------------------------------
 SET_NUMERIC_ENV_VAR: macro
-    if E_\1            ; if not enabled, do not set
+    if E_\1                   ; if not enabled, do not set
         ifnc "\1",d1
             move.w \2,d1
         endif
@@ -210,8 +210,8 @@ CREATE_ALIGNED_STACK_FRAME: macro
     endif
     neg.l   d0
     add.l   sp,d0
-    asr.b   #2,d0  ; shift 2 right and then left rounds to
-    asl.b   #2,d0  ;   the next multiple of 4 when negative
+    addq.b  #3,d0    ; round to next multiple of 4, by first
+    andi.b  #$fc,d0  ;   adding 3, then clearing last 2 bits
     sub.l   sp,d0
     neg.l   d0
     sub.l   d0,sp    
@@ -435,8 +435,9 @@ VAMP_VER_ADDR      = $dff3fc
     if E_VampireCoreRev
 
     move.w VAMP_CORE_REV_ADDR,d4
-    beq    .setCoreRevNotAvailable        ; 0 is an invalid value
-    bmi    .setCoreRevNotAvailable        ; anything < 0 is an invalid value
+    beq    .setCoreRevNotAvailable  ; 0 is invalid
+    bmi    .setCoreRevNotAvailable  ; negative is invalid
+
     SET_NUMERIC_ENV_VAR VampireCoreRev,d4 
     bra    .processVampireVersion
 
@@ -456,16 +457,16 @@ VAMP_VER_ADDR      = $dff3fc
     SET_NUMERIC_ENV_VAR VampireClockMult,d1
 
     ; Vampire Card
-    lea    VAMP_T_UNKNOWN,a0    ; point A0 to unknown as a default
+    lea    VAMP_T_UNKNOWN,a0    ; A0 -> unknown as default
     lea    VAMP_TYPE_OFFSETS,a1 ; we need the offsets later
     lsr.w  #8,d4                ; get higher 8 bits for type
     subq.b #1,d4                ; constants start at 1
-    bmi    .setVampType         ; if negative, leave A0 point to unknown
+    bmi    .setVampType         ; if < 0, print unknown
     cmpi.b #VAMP_TYPE_COUNT,d4  ; compare against type count 
-    bge    .setVampType         ; if not in range, leave A0 point to unknown
-    lea    VAMP_TYPE_STRINGS,a0 ; valid type, ma A0 point to strings
-    move.b (a1,d4),d4           ; put nth (D4) offset into D4
-    adda   d4,a0                ; Add offset (D4) to A0, now points to string
+    bge    .setVampType         ; if greater, print unknown
+    lea    VAMP_TYPE_STRINGS,a0 ; valid type, A0 -> strings
+    move.b (a1,d4),d4           ; nth (D4) offset into D4
+    adda   d4,a0                ; Add offset (D4) to A0
 
 .setVampType:
     SET_ENV_VAR_CLEN VampireType,a0,-1
@@ -573,7 +574,7 @@ setChipsetAndVFreqEnvVars:
 ; Check SAGA via chip ID of POTGOR register
     move.l #"SAGA",d5
     move.w POTGOR,d0
-    andi.w #$fe,d0      ; mask chip ID (bits 1-7)
+    andi.w #$fe,d0       ; mask chip ID (bits 1-7)
     bne.b  .storeChipset
 
 ; We use VPOSR to detect Agnus/Alice
@@ -799,7 +800,7 @@ printNumber:
     move.w d0,d1    ; put quotient (first 16bits) in D1
     swap   d0       ; get remainder by swapping 16 bit
     addi   #'0',d0  ; generate ASCII character in D0
-    move.b d0,-(a1)
+    move.b d0,-(a1) ; print from right to left
     moveq  #0,d0    ; clean D0
     move.w d1,d0    ; continue with quotient
     bne.b  .loop    ; until quotient is 0
