@@ -2,7 +2,7 @@ Short:        Put system information in env. variables
 Uploader:     $uploader$
 Author:       $author$
 Type:         util/boot
-Version:      0.12
+Version:      0.13
 Architecture: m68k-amigaos >= 1.3
 Distribution: Aminet
 Kurz:         Legt System infos in Umgebungsvariablen
@@ -32,43 +32,49 @@ installs a bootblock and copies the files.
 
 Currently, the following variables are set by sysvars
 
-$CPU:           installed CPU, for example 68030 (see NOTES for OS 1.3)
+$CPU:             Installed CPU, for example 68030 (see NOTES)
 
-$FPU:           installed FPU, one of 68881, 68882, internal (for non-LC/EC
-                040 and 060 CPUs), or empty if no FPU is available (see NOTES
-                for OS 1.3)
+$FPU:             Installed FPU, one of 68881, 68882, internal (for non-LC/EC
+                  040 and 060 CPUs), or empty if no FPU is available (see
+                  NOTES for OS 1.3)
 
-$Chipset:       installed graphics chipset, one of OCS, ECS, AGA
+$Chipset:         Installed graphics chipset, one of OCS, ECS, AGA, SAGA
 
-$VFreq:         the vertical frequency of the native display, can be either
-                50 (PAL 50Hz) or 60 (NTSC 60Hz)
+$VFreq:           The vertical frequency of the native display, can be either
+                  50 (PAL 50Hz) or 60 (NTSC 60Hz)
 
-$KickVer:       Kickstart version
+$KickVer:         Kickstart version
 
-$KickRev:       Kickstart revision
+$KickRev:         Kickstart revision
 
-$BSDSockLib:    The id of bsdsocket.library, empty if unavailable
+$BSDSockLib:      The id of bsdsocket.library, empty if unavailable
 
-$BSDSockLibVer: The version of bsdsocket.library, empty if unavailable
+$BSDSockLibVer:   The version of bsdsocket.library, empty if unavailable
 
-$BSDSockLibRev: The revision of bsdsocket.library, empty if unavailable
+$BSDSockLibRev:   The revision of bsdsocket.library, empty if unavailable
 
-$UAEMajor:      The major version of UAE, empty if it was not detected
+$UAEMajor:        The major version of UAE, empty if it was not detected
 
-$UAEMinor:      The minor version of UAE, empty if it was not detected
+$UAEMinor:        The minor version of UAE, empty if it was not detected
 
-$UAERev:        The revision of UAE, empty if it was not detected
+$UAERev:          The revision of UAE, empty if it was not detected
 
+$VampireType:     The type of vampire installed, for example "V2_600", or
+                  "V4_Standalone"
+
+$VampireCoreRev:  The core revision of the currently flashed firmware .jic
+                  file (see NOTES)
+
+$VampireClockMult: The vampire clock multiplier
 _____________________________________________________________________________
 
 NOTES
 
-- 68080 and SAGA (Vampire) detection implemented following
-  http://adevnoo.wikidot.com/detect-080-code.
+- 68080 and SAGA (Vampire) is supported. Some beta cores might not have a
+  core revision, in which case $VampireCoreRev is set to "N/A"
 - UAE is detected via the uae.resource, which is only there if a virtual hard
   drive or another UAE expansion to be enabled. Thus, detection will fail on
   floppy-only-unexpanded Amiga configurations
-
 _____________________________________________________________________________
 
 REQUIREMENTS
@@ -79,19 +85,28 @@ REQUIREMENTS
   Another advantage is that it does not require ENV:. This means it can run
   very early, even before SetPatch.
 - For the purists, sysvars runs happily also on OS 1.3 and even down to
-  OS 1.1. However, there are some limitations to consider
-  - In OS 1.3 and below, sysvars will currently detect CPUs above 68020 as
-    68020 and any FPUs as 68881.
-  - in OS 1.3, environment variables can only have global scope (i.e., they
-    reside in ENV:). This means you must have ENV: mounted (e.g., to some
-    folder on RAM:). This is not required for OS 2.0 and above.
-  - In OS 1.3, environment variables are not useable with every command, but
-    only with IF. Thus, things like 'ECHO $CPU' do not work. You must use
-    something like 'IF $CPU GE 68010'.
-  - Below OS 1.3, UAE detection does not work
-  - Below OS 1.3, the IF command does not support environment variables.
-    You must use the IF command from Workbench 1.3. Also, only EQ (equal)
-    seems to work here.
+  OS 1.1. However, there are some limitations to consider (see below).
+_____________________________________________________________________________
+
+LIMITATIONS/DISCLAIMER
+
+OS 1.3:
+- Sysvars currently detects CPUs above 68020 as 68020 and any FPUs as 68881
+- Environment variables can only have global scope (ENV: must be mounted)
+- Environment variables can only be used with the IF command
+  (things like 'ECHO $CPU' do not work. You must use 'IF $CPU GE 68010').
+
+OS 1.2 and below:
+- UAE detection does not work
+- The IF command does not support environment variables, but you can use the
+  IF command from Workbench 1.3
+- Even with the WB 1.3 IF command, only EQ seems to work
+
+Sysvars is optimized for speed, being compact and system friendly. It is not
+an elaborate H/W detection tool, such as WhichAmiga, which means that there
+might be system combinations, where sysvars gets it wrong (you can of course
+file a bug report)
+  
 _____________________________________________________________________________
 
 WHY SUCH A TOOL?
@@ -143,6 +158,10 @@ The code is licensed under the MIT License
 _____________________________________________________________________________
 
 RELEASE HISTORY
+
+Version 0.13
+- Added Vampire infos $VampireType, $VampireCoreRev and VampireClockMult
+- Minor code cleanup
 
 Version 0.12
 - Added 68080 and SAGA (Vampire) support following
