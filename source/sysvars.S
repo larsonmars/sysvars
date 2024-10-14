@@ -187,6 +187,7 @@ SET_NUMERIC_ENV_VAR: macro
         ifnc "\1",d1
             move.w \2,d1
         endif
+        suba a1,a1
         bsr    printNumber
         SET_ENV_VAR \1,a1,d0
     endif
@@ -302,12 +303,11 @@ CLOSE_LIBRARY: macro
 *********************** Main Entry  ************************
     section Code,code
 main:
-
     ; A6 is assumed to point to dos.library throughout the
     ; program. A6 = 0 indicates that dos.library is not
     ; loaded
-    move.l #0,a6
-    OPEN_LIBRARY #.DosLibName,0
+    suba.l a6,a6
+    OPEN_LIBRARY #DosLibName,0
     move.l d0,a6
 
     bsr setAllVariables
@@ -318,7 +318,7 @@ main:
 
     section Strings,code
 
-.DosLibName: dc.b "dos.library",0
+DosLibName: dc.b "dos.library",0
 
 ************************ Kickstart *************************
 
@@ -448,20 +448,24 @@ VAMP_VER_ADDR      = $dff3fc
 .processVampireVersion:
     if E_VampireType+E_VampireClockMult
     move.w VAMP_VER_ADDR,d4
+
     ; Clock Multiplier
-    moveq  #0,d1                            ; clean d1
-    move.b d4,d1                            ; lower 8 bits are clock mult
+    moveq  #0,d1 ; clean d1
+    move.b d4,d1 ; lower 8 bits are clock mult
+
     SET_NUMERIC_ENV_VAR VampireClockMult,d1
+
     ; Vampire Card
-    lsr.w  #8,d4                            ; get higher 8 bits for type
-    cmpi   #VAMP_TYPE_COUNT,d4              ; type must be within range
-    blt.s  *+10                             ; jump over next 2 instr.
-    lea    VAMP_T_UNKNOWN,a0
-    bra    .setVampType
-    lea    VAMP_TYPE_STRINGS,a0
-    lea    VAMP_TYPE_OFFSETS,a1
-    move.b (a1,d4),d4
-    adda   d4,a0
+    lea    VAMP_T_UNKNOWN,a0    ; point A0 to unknown as a default
+    lea    VAMP_TYPE_OFFSETS,a1 ; we need the offsets later
+    lsr.w  #8,d4                ; get higher 8 bits for type
+    subq.b #1,d4                ; constants start at 1
+    bmi    .setVampType         ; if negative, leave A0 point to unknown
+    cmpi.b #VAMP_TYPE_COUNT,d4  ; compare against type count 
+    bge    .setVampType         ; if not in range, leave A0 point to unknown
+    lea    VAMP_TYPE_STRINGS,a0 ; valid type, ma A0 point to strings
+    move.b (a1,d4),d4           ; put nth (D4) offset into D4
+    adda   d4,a0                ; Add offset (D4) to A0, now points to string
 
 .setVampType:
     SET_ENV_VAR_CLEN VampireType,a0,-1
@@ -776,7 +780,7 @@ UaeResName: dc.b "uae.resource",0
 
     section Code,code
 ;-----------------------------------------------------------
-; Prints a number [0...9999] and returns the string.
+; Prints a 16 bit wide number and returns the string.
 ;
 ; IN:  D1.w - Integer to be printed
 ; OUT: A1   - Address to string
@@ -785,41 +789,30 @@ UaeResName: dc.b "uae.resource",0
 ; Potentially overwrites D0, D1, A0, A1
 ;-----------------------------------------------------------
 printNumber:
-    movem.l d2/d3,-(sp) ; preserve D2 and D3
-
-    moveq  #0,d0  ; clean D0 (used to calc. & gen. char)
-    moveq  #0,d2  ; clean D2 (holds chars)
-    moveq  #0,d3  ; clean D3 (char count)
-    move.w d1,d0  ; put initial uint16 in D0
+    moveq  #0,d0
+    move.w d1,d0               ; put initial uint16 in D0
+    lea.l .PrintedNumberEnd,a1 ; point A1 to end of buffer
 
 ; Generate string in D2 (max. 4 characters)
 .loop    
     divu   #10,d0   ; Divide by 10
-    move.w d0,d1    ; put quotient (first 16bits) in D0
+    move.w d0,d1    ; put quotient (first 16bits) in D1
     swap   d0       ; get remainder by swapping 16 bit
-    add.b  #'0',d0  ; generate ASCII character in D0
-    and.l  #$ff,d0  ; clear everything except the lower byte
-    ror.l  #8,d0    ; put the byte to front
-    addq   #1,d3    ; increment char count
-    lsr.l  #8,d2    ; make space for next character
-
-    add.l  d0,d2    ; put next character in D2
+    addi   #'0',d0  ; generate ASCII character in D0
+    move.b d0,-(a1)
     moveq  #0,d0    ; clean D0
     move.w d1,d0    ; continue with quotient
     bne.b  .loop    ; until quotient is 0
 
-; Put characters into string buffer, return
-    lea.l VerNumStrBuff,a1
-    move.l d2,(a1)           ; Put all 4 characters at once
-    move.b d3,d0             ; char count returned in D0
-    movem.l (sp)+,d2/d3      ; restore D2 and D3
+    sub.l  a1,d0                 ; calc length
+    addi.l #.PrintedNumberEnd,d0 
 
     rts
 
     section PreinitializedData,data
-    cnop 0,4
-VerNumStrBuff: dc.b 0,0,0,0,0
 
+    dc.b 0,0,0,0,0        ; 5 chiffres
+.PrintedNumberEnd: dc.b 0 ; null terminator
 
     section Code,code
 ;-----------------------------------------------------------

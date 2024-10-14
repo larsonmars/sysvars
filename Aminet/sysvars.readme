@@ -32,38 +32,38 @@ installs a bootblock and copies the files.
 
 Currently, the following variables are set by sysvars
 
-$CPU:             Installed CPU, for example 68030 (see NOTES)
+$CPU:              Installed CPU, for example 68030 (see NOTES below)
 
-$FPU:             Installed FPU, one of 68881, 68882, internal (for non-LC/EC
-                  040 and 060 CPUs), or empty if no FPU is available (see
-                  NOTES for OS 1.3)
+$FPU:              Installed FPU, one of 68881, 68882, internal (for non-LC/
+                   EC 040 and 060 CPUs), or empty if no FPU is available (see
+                   LIMITATIONS below for OS 1.3)
 
-$Chipset:         Installed graphics chipset, one of OCS, ECS, AGA, SAGA
+$Chipset:          Installed graphics chipset, one of OCS, ECS, AGA, SAGA
 
-$VFreq:           The vertical frequency of the native display, can be either
-                  50 (PAL 50Hz) or 60 (NTSC 60Hz)
+$VFreq:            The vertical frequency of the native display, can be
+                   either 50 (PAL 50Hz) or 60 (NTSC 60Hz)
 
-$KickVer:         Kickstart version
+$KickVer:          Kickstart version
 
-$KickRev:         Kickstart revision
+$KickRev:          Kickstart revision
 
-$BSDSockLib:      The id of bsdsocket.library, empty if unavailable
+$BSDSockLib:       The id of bsdsocket.library, empty if unavailable
 
-$BSDSockLibVer:   The version of bsdsocket.library, empty if unavailable
+$BSDSockLibVer:    The version of bsdsocket.library, empty if unavailable
 
-$BSDSockLibRev:   The revision of bsdsocket.library, empty if unavailable
+$BSDSockLibRev:    The revision of bsdsocket.library, empty if unavailable
 
-$UAEMajor:        The major version of UAE, empty if it was not detected
+$UAEMajor:         The major version of UAE, empty if it was not detected
 
-$UAEMinor:        The minor version of UAE, empty if it was not detected
+$UAEMinor:         The minor version of UAE, empty if it was not detected
 
-$UAERev:          The revision of UAE, empty if it was not detected
+$UAERev:           The revision of UAE, empty if it was not detected
 
-$VampireType:     The type of vampire installed, for example "V2_600", or
-                  "V4_Standalone"
+$VampireType:      The type of vampire installed, for example "V2_600", or
+                   "V4_Standalone"
 
-$VampireCoreRev:  The core revision of the currently flashed firmware .jic
-                  file (see NOTES)
+$VampireCoreRev:   The core revision of the currently flashed firmware .jic
+                   file (see NOTES below)
 
 $VampireClockMult: The vampire clock multiplier
 _____________________________________________________________________________
