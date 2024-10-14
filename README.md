@@ -7,36 +7,24 @@
 sysvars is a small CLI tool for the Amiga that creates several environment variables holding valuable system information. These variables can be used, for example, in the startup-sequence to enable/disable certain patches, assigns, and so on.
 
 Currently, the following variables are set:
-- **``$CPU``**: installed CPU, for example ``68030``[^1]
-- **``$FPU``**: installed FPU, one of ``68881``, ``68882``, ``internal``[^2] (for non-LC/EC 040 and 060 CPUs), or empty if no FPU is available
-- **``$Chipset``**: installed graphics chipset, one of ``OCS``, ``ECS``, ``AGA``, ``SAGA``
-- **``$VFreq``**: the vertical frequency of the native display, can be either ``50`` (PAL 50Hz) or ``60`` (NTSC 60Hz)
-- **``$KickVer``** & **``$KickRev``**: Kickstart version and revision [^3]
-- **``$BSDSockLib``**, **``$BSDSockLibVer``**, and **``$BSDSockLibRev``**: The id, version and revision of bsdsocket.library available, empty if bsdsocket.library is not available
-- **``$UAEMajor``**, **``$UAEMinor``**, **``$UAERev``**: The version of UAE detected, empty if UAE was not detected[^4]
-- **``$VampireType``**: The type of vampire installed, for example "V2_600", or "V4_Standalone"
-- **``$VampireCoreRev``**: The core revision of the currently flashed firmware .jic file (see NOTES)
-- **``$VampireClockMult``**: The vampire clock multiplier
+|Variable|Description|
+|--------------|------------------------------------------|
+| **``$CPU``** | installed CPU, for example ``68030``[^1] |
+| **``$FPU``** | installed FPU, one of ``68881``, ``68882``, ``internal``[^2] (for non-LC/EC 040 and 060 CPUs), or empty if no FPU is available |
+| **``$Chipset``** |installed graphics chipset, one of ``OCS``, ``ECS``, ``AGA``, ``SAGA`` |
+| **``$VFreq``** |vertical frequency of the native display, can be either ``50`` (PAL 50Hz) or ``60`` (NTSC 60Hz) |
+| **``$KickVer``** & **``$KickRev``** |Kickstart version and revision [^3] |
+| **``$BSDSockLib``**, **``$BSDSockLibVer``**, **``$BSDSockLibRev``** |id, version and revision of bsdsocket.library available, empty if bsdsocket.library is not available |
+| **``$UAEMajor``**, **``$UAEMinor``**, **``$UAERev``** |version of UAE detected, empty if UAE was not detected[^4] |
+| **``$VampireType``** |type of vampire installed, for example "V2_600", or "V4_Standalone" |
+| **``$VampireCoreRev``** |core revision of the currently flashed firmware .jic file[^5] |
+| **``$VampireClockMult``** |vampire clock multiplier |
 
 # Requirements
 
 The tool works best with Amiga OS 2.0 or later. Here, it calls ``SetVar``, which allows for local scope variables. Local scope is no limitation, because the workbench is also loaded in the scope of the startup-sequence. Another advantage is that it does not require ENV:. This means it can run very early, even before SetPatch.
 
-However, for the purists, sysvars runs happily also on OS 1.3 and even down to OS 1.1. However, there are some limitations to consider (see below)
-
-# Limitations/Disclaimer
-
-- In OS 1.3 and below, sysvars will currently detect CPUs above 68020 as 68020 and any FPUs as 68881.
-- In OS 1.3, environment variables can only have global scope (i.e., they reside in ENV:). This means you must have ENV: mounted (e.g., to some folder on RAM:). This is not required for OS 2.0 and above.
-- In OS 1.3, environment variables are only useable with IF command. Thus, things like ``ECHO $CPU`` do not work. You must use something like ``IF $CPU GE 68010``.
-- Below OS 1.3, UAE detection does not work
-- Below OS 1.3, the IF command does not support environment variables. You must use the IF command from Workbench 1.3. Also, only EQ (equal) seems to work here.
-- Sysvars is optimized for speed, being compact and system friendly. It is not an elaborate H/W detection tool, such as WhichAmiga, which means that there might be system combinations, where sysvars gets it wrong (you can of course file a bug report)
-
-[^1]: 68080 (Vampire) detection is implemented. On OS 1.3 and below, CPUs > 68020 are currently detected as 68020.
-[^2]: On OS 1.3 and below, all FPUs are detected as 68881.
-[^3]: Workbench 2.0 and above 
-[^4]: UAE is detected via the uae.resource, which is only there if a virtual hard drive or another UAE expansion to be enabled. Thus, detection will fail on floppy-only-unexpanded Amiga configurations.
+However, for the purists, sysvars runs happily also on OS 1.3 and even down to OS 1.1. However, there are some limitations to consider (see [limitations](#Limitations-and-Disclaimer))
 
 # Installing
 
@@ -47,7 +35,7 @@ However, for the purists, sysvars runs happily also on OS 1.3 and even down to O
 
 # Building
 
-The source should build with [VASM](http://www.compilers.de/vasm.html), [AsmOne](http://www.theflamearrows.info/documents/asmone.html), [AsmTwo](http://coppershade.org/articles/Code/Tools/AsmTwo/), and [AsmPro](https://aminet.net/package/dev/asm/ASMPro1.19).
+The source should build with [VASM](http://www.compilers.de/vasm.html), [AsmOne](http://www.theflamearrows.info/documents/asmone.html)[^6], [AsmTwo](http://coppershade.org/articles/Code/Tools/AsmTwo/), and [AsmPro](https://aminet.net/package/dev/asm/ASMPro1.19).
 
 You can also compile this in VSCode using a [nice VSCode plugin](https://github.com/prb28/vscode-amiga-assembly), a suitable configuration is included in the .vscode directory.
 
@@ -79,6 +67,20 @@ ENDIF
 
 Also, I always wanted to learn M68k assembler. After 30 years using an Amiga this was about time!
 
+# Limitations and Disclaimer
+
+## OS 1.3
+- Sysvars currently detects CPUs above 68020 as 68020 and any FPUs as 68881.
+- Environment variables can only have global scope (i.e., they reside in ENV:). This means you must have ENV: mounted (e.g., to some folder on RAM:). This is not required for OS 2.0 and above.
+
+## OS 1.2 and below
+- Environment variables can only be used with the IF command (things like ``ECHO $CPU`` do not work. You must use ``IF $CPU GE 68010``)
+- UAE detection does not work
+- the IF command does not support environment variables. You can use the IF command from Workbench 1.3, but only EQ (equal) seems to work here.
+
+## General
+As sysvars is optimized for speed, being compact and system friendly. It is not an elaborate H/W detection tool, such as WhichAmiga, which means that there might be system combinations, where sysvars gets it wrong (you can of course file a bug report)
+
 # Future Plans/Known Bugs
 
 The tool is already quite useable, but there are still some things missing, which I want to fix in future versions (no particular order):
@@ -88,3 +90,10 @@ The tool is already quite useable, but there are still some things missing, whic
 - For Os 1.3: add detection for CPUs > 68020 and at least the 68882
 - Make use of boards.library and identify.library if available for even more expansions.
 - Make a WinUAE/FS-UAE-based test suite for automated tests (CI/CD-like)
+
+[^1]: 68080 (Vampire) detection is implemented. On OS 1.3 and below, CPUs > 68020 are currently detected as 68020.
+[^2]: On OS 1.3 and below, all FPUs are detected as 68881.
+[^3]: Workbench 2.0 and above 
+[^4]: UAE is detected via the uae.resource, which is only there if a virtual hard drive or another UAE expansion to be enabled. Thus, detection will fail on floppy-only-unexpanded Amiga configurations.
+[^5]: Some beta cores might not have a valid core revision, in which case ``$VampireCoreRev`` is set to "N/A"
+[^6]: Currently only the original 1.2 is supported. 1.48 and 1.49 have problems with the macros
