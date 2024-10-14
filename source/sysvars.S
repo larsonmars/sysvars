@@ -19,7 +19,7 @@
 ; -DDISABLE_CPU
     section Code,code
     section Strings,code
-    dc.b 0,"$VER: SYSVARS 0.12 (14.04.2024)",0
+    dc.b 0,"$VER: SYSVARS 0.13 (14.10.2024)",0
     section Code,code
 
 ENABLE: macro
@@ -136,10 +136,10 @@ SET_ENV_VAR: macro
         moveq #0,d3
     endif
     bsr    setEnvVar
-    bne.b .setVarDone\@
+    bne    .setVarDone\@
     move.l #\1EnvVarName,d1     ; print error
-    bsr   printSetEnvVarErrMsg
-    moveq #0,d0                 ; indicate error
+    bsr    printSetEnvVarErrMsg
+    moveq  #0,d0                ; indicate error
 .setVarDone\@:
     endif
     endm
