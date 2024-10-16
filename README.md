@@ -35,7 +35,7 @@ However, for the purists, sysvars runs happily also on OS 1.3 and even down to O
 
 # Building
 
-The source should build with [VASM](http://www.compilers.de/vasm.html), [AsmOne](http://www.theflamearrows.info/documents/asmone.html)[^6], [AsmTwo](http://coppershade.org/articles/Code/Tools/AsmTwo/), and [AsmPro](https://aminet.net/package/dev/asm/ASMPro1.19).
+The source should build with [VASM](http://www.compilers.de/vasm.html), [AsmOne](http://www.theflamearrows.info/documents/asmone.html)[^6], [AsmTwo](http://coppershade.org/articles/Code/Tools/AsmTwo/), [AsmPro](https://aminet.net/package/dev/asm/ASMPro1.19), and [asmotor](https://github.com/asmotor/asmotor/tree/master)
 
 You can also compile this in VSCode using a [nice VSCode plugin](https://github.com/prb28/vscode-amiga-assembly), a suitable configuration is included in the .vscode directory.
 
@@ -96,4 +96,4 @@ The tool is already quite useable, but there are still some things missing, whic
 [^3]: Workbench 2.0 and above 
 [^4]: UAE is detected via the uae.resource, which is only there if a virtual hard drive or another UAE expansion to be enabled. Thus, detection will fail on floppy-only-unexpanded Amiga configurations.
 [^5]: Some beta cores might not have a valid core revision, in which case ``$VampireCoreRev`` is set to "N/A"
-[^6]: Currently only the original 1.2 is supported. 1.48 and 1.49 have problems with the macros
+[^6]: Currently only the original 1.2 is supported. 1.48 and 1.49 seem to have problems with nested macros

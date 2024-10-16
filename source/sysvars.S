@@ -1,6 +1,6 @@
 ************************************************************
 *                                                          *
-*                      SYSVARS V.0.13                      *
+*                     SYSVARS V.0.13.1                     *
 *                                                          *
 * SPDX-FileCopyrightText: (c) 2023-2024 Lars Stockmann     *
 * SPDX-License-Identifier: MIT                             *
@@ -17,17 +17,17 @@
 ; Comment out to disable environment variable
 ; You can also disable them on the command line like so:
 ; -DDISABLE_CPU
-    section Code,code
-    section Strings,code
-    dc.b 0,"$VER: SYSVARS 0.13 (14.10.2024)",0
-    section Code,code
+    section "Code",CODE
+    section "Strings",CODE
+    dc.b 0,"$VER: SYSVARS 0.13.1 (16.10.2024)",0
+    section "Code",CODE
 
 ENABLE: macro
     ifnd DISABLE_\1
 E_\1 = 1    
     else
 E_\1 = 0
-    endif
+    endc
     endm
 
     ENABLE KickVer
@@ -104,8 +104,8 @@ GVF_LOCAL_ONLY = $200
 ;-----------------------------------------------------------
 DEFINE_ENV_VAR_NAME: macro
     if E_\1                    ; if not enabled, do not set
-    \1EnvVarName: dc.b "\1",0
-    endif
+\1EnvVarName: dc.b "\1",0
+    endc
     endm
 
 ;-----------------------------------------------------------
@@ -125,23 +125,23 @@ DEFINE_ENV_VAR_NAME: macro
 SET_ENV_VAR: macro
     if E_\1                      ; Only set if enabled
         move.l #\1EnvVarName,d1  ; arg1: name address
-    if NARG>1
+    ifnc "\2",""
         move.l \2,d2             ; arg2: content address
-        if NARG>2
+        ifnc "\3",""
             move.l \3,d3         ; arg3: content length
         else
             moveq #-1,d3
-        endif
+        endc
     else
         moveq #0,d3
-    endif
+    endc
     bsr    setEnvVar
     bne    .setVarDone\@
     move.l #\1EnvVarName,d1      ; print error
     bsr    printSetEnvVarErrMsg
     moveq  #0,d0                 ; indicate error
 .setVarDone\@:
-    endif
+    endc
     endm
 
 ;-----------------------------------------------------------
@@ -161,7 +161,7 @@ SET_ENV_VAR_CLEN: macro
       move.l #\1EnvVarName,d1     ; arg1: name address
       ifne \3
         move.l \2,d2              ; arg2: content address
-      endif
+      endc
       moveq  #\3,d3               ; arg3: content length
       bsr    setEnvVar
       bne.b .setVarDone\@
@@ -169,7 +169,7 @@ SET_ENV_VAR_CLEN: macro
       bsr   printSetEnvVarErrMsg
       moveq #0,d0                 ; indicate error
 .setVarDone\@:
-    endif
+    endc
     endm
 
 ;-----------------------------------------------------------
@@ -184,13 +184,13 @@ SET_ENV_VAR_CLEN: macro
 ;-----------------------------------------------------------
 SET_NUMERIC_ENV_VAR: macro
     if E_\1                   ; if not enabled, do not set
-        ifnc "\1",d1
+        ifnc "\1","d1"
             move.w \2,d1
-        endif
+        endc
         suba a1,a1
         bsr    printNumber
         SET_ENV_VAR \1,a1,d0
-    endif
+    endc
     endm
 
 ;-----------------------------------------------------------
@@ -205,9 +205,9 @@ SET_NUMERIC_ENV_VAR: macro
 ; stack frame.
 ;-----------------------------------------------------------
 CREATE_ALIGNED_STACK_FRAME: macro
-    ifnc "\1",d0
+    ifnc "\1","d0"
         move.l \1,d0
-    endif
+    endc
     neg.l   d0
     add.l   sp,d0
     addq.b  #3,d0    ; round to next multiple of 4, by first
@@ -235,27 +235,27 @@ OPEN_LIBRARY: macro
     move.l  \1,a1   ; library name
     moveq   #\2,d0  ; version is macro param
 
-    if NARG>2
-        ifc "\3","d0"
-            fail "Do not use scratch register D0!"
-        endif
-        ifc "\3","d1"
-            fail "Do not use scratch register D1!"
-        endif
-        ifc "\3","a0"
-            fail "Do not use scratch register A0!"
-        endif
-        ifc "\3","a1"
-            fail "Do not use scratch register A1!"
-        endif
+    ifc "\3","d0"
+        fail "Do not use scratch register D0!"
+    endc
+    ifc "\3","d1"
+        fail "Do not use scratch register D1!"
+    endc
+    ifc "\3","a0"
+        fail "Do not use scratch register A0!"
+    endc
+    ifc "\3","a1"
+        fail "Do not use scratch register A1!"
+    endc
+    ifnc "\3",""
         movea.l a6,\3
-    endif
+    endc
 
     movea.l EXEC_BASE,a6         ; get exec base in A6
     jsr     _LVOOpenLibrary(a6)
-    if NARG>2
+    ifnc "\3",""
         movea.l \3,a6
-    endif
+    endc
     tst.l   d0
     endm
 ;-----------------------------------------------------------
@@ -271,37 +271,35 @@ OPEN_LIBRARY: macro
 ; Overwrites A6 if no 3. argument is given to preserve it
 ;-----------------------------------------------------------
 CLOSE_LIBRARY: macro
-    if NARG>0
-        IFNC "\1","a1"
-        move.l  \1,a1  ; library pointer
-        endif
-    endif
+        ifnc "\1","a1"
+            move.l  \1,a1  ; library pointer
+        endc
 
-    if NARG>1
         ifc "\2","d0"
             fail "Do not use scratch register D0!"
-        endif
+        endc
         ifc "\2","d1"
             fail "Do not use scratch register D1!"
-        endif
+        endc
         ifc "\2","a0"
             fail "Do not use scratch register A0!"
-        endif
+        endc
         ifc "\2","a1"
             fail "Do not use scratch register A1!"
-        endif
-        movea.l a6,\2
-    endif
+        endc
+        ifnc "\2",""
+            movea.l a6,\2
+        endc
 
     movea.l EXEC_BASE,a6          ; get exec base in A6
     jsr     _LVOCloseLibrary(a6)
-    if NARG>1
+    ifnc "\2",""
         movea.l \2,a6
-    endif
+    endc
     endm
 
 *********************** Main Entry  ************************
-    section Code,code
+    section "Code",CODE
 main:
     ; A6 is assumed to point to dos.library throughout the
     ; program. A6 = 0 indicates that dos.library is not
@@ -316,7 +314,7 @@ main:
     moveq   #0,d0     ; return code 0
     rts
 
-    section Strings,code
+    section "Strings",CODE
 
 DosLibName: dc.b "dos.library",0
 
@@ -324,7 +322,7 @@ DosLibName: dc.b "dos.library",0
 
     if E_KickVer+E_KickRev
     
-    section Code,code
+    section "Code",CODE
 ;-----------------------------------------------------------
 ; Determines the kickstart version and revision and puts
 ; them into environment variabes $KickVer and $KickRev
@@ -361,18 +359,18 @@ setKickstartEnvVars:
     SET_NUMERIC_ENV_VAR KickRev,d6
     rts
 
-    section Strings,code
+    section "Strings",CODE
 
     DEFINE_ENV_VAR_NAME KickVer
     DEFINE_ENV_VAR_NAME KickRev
 
-    endif
+    endc
 
 ************************ CPUAndFPU *************************
 
     if E_CPU+E_FPU
     
-    section Code,code
+    section "Code",CODE
 ;-----------------------------------------------------------
 ; Determines the CPU and FPU type and writes it into
 ; environment variables $CPU and $FPU.
@@ -444,7 +442,7 @@ VAMP_VER_ADDR      = $dff3fc
 .setCoreRevNotAvailable
     SET_ENV_VAR_CLEN VampireCoreRev,#VAMP_CORE_REV_NA,-1
 
-    endif
+    endc
 
 .processVampireVersion:
     if E_VampireType+E_VampireClockMult
@@ -471,12 +469,12 @@ VAMP_VER_ADDR      = $dff3fc
 .setVampType:
     SET_ENV_VAR_CLEN VampireType,a0,-1
 
-    endif
-    endif
+    endc
+    endc
 
 .getFPU  
 ; We lshift D0 by 1 (via add.b d0,d0) until it is negative
-    lea.l  FPUStr,a0
+    lea    FPUStr,a0
     add.b  d5,d5
     bmi.b  .storeInternal
     add.b  d5,d5
@@ -501,7 +499,7 @@ VAMP_VER_ADDR      = $dff3fc
     SET_ENV_VAR FPU,#FPUStr,d3
     rts
 
-    section PreInitializedData,data
+    section "PreinitializedData",DATA
     
 CPUStr: dc.b "680?0"
 
@@ -512,7 +510,7 @@ VampireCoreRevStr: dc.b "N/A",0
     cnop 0,4
 FPUStr: dc.b "6888rnal"
     
-    section Strings,code
+    section "Strings",CODE
 
     DEFINE_ENV_VAR_NAME CPU
     DEFINE_ENV_VAR_NAME FPU    
@@ -547,15 +545,15 @@ VAMP_TYPE_OFFSETS_END:
 
 VAMP_TYPE_COUNT = VAMP_TYPE_OFFSETS_END-VAMP_TYPE_OFFSETS
 
-    endif
+    endc
 
-    endif
+    endc
 
 ********************* ChipsetAndVFreq **********************
 
     if E_Chipset+E_VFreq
 
-    section Code,code
+    section "Code",CODE
 ;-----------------------------------------------------------
 ; Determines the availble chipset (OCS, ECS, AGA, SAGA) and
 ; the vertical frequency (50/60) in Hz and fills the
@@ -610,7 +608,7 @@ setChipsetAndVFreqEnvVars:
     rts
 
     
-    section PreInitializedData,data
+    section "PreinitializedData",DATA
 
     ; Note: ChipsetStr is cmposed using a long  move. Thus
     ;       the target string must be aligned
@@ -618,18 +616,18 @@ setChipsetAndVFreqEnvVars:
 ChipsetStr: dc.b "?",0,0,0,0
 VFreqStr:   dc.b "?0"
 
-    section Strings,code
+    section "Strings",CODE
 
     DEFINE_ENV_VAR_NAME Chipset
     DEFINE_ENV_VAR_NAME VFreq
 
-    endif
+    endc
 
 ************************ BSDSockLib ************************
 
     if E_BSDSockLibVer+E_BSDSockLibRev+E_BSDSockLib
     
-    section Code,code
+    section "Code",CODE
 ;-----------------------------------------------------------
 ; Checks if bsdsocket.library is available and if so, puts
 ; its version, revision and identifier into environment
@@ -649,11 +647,11 @@ setBSDSockLibEnvVars:
     beq.w  .notOpened
 
     ; Fetch infos
-    move.l d0,a4                 ; preserve bsdsocketLib ref
-    lea.l EXEC_O_LIB_VER(a4),a0  ; Get lib version member
-    move.w (a0)+,d5              ; store version in D5
-    move.w (a0)+,d6              ; store revision in D6
-    move.l (a0),d7               ; store id string in D7
+    move.l d0,a4                  ; preserve library ref
+    lea    EXEC_O_LIB_VER(a4),a0  ; Get lib version member
+    move.w (a0)+,d5               ; store version in D5
+    move.w (a0)+,d6               ; store revision in D6
+    move.l (a0),d7                ; store id string in D7
 
     ; Note: For some reason, under the AROS ROM, SetVar
     ;       cannot access the id string directly, so we must
@@ -671,7 +669,7 @@ setBSDSockLibEnvVars:
     move.l d7,a1  ; get id string again into A1 for copy
 .copyIdString
     move.b (a1)+,(a0)+
-    bne.s .copyIdString
+    bne    .copyIdString
 
     CLOSE_LIBRARY a4,a5
 
@@ -690,7 +688,7 @@ setBSDSockLibEnvVars:
     SET_ENV_VAR BSDSockLib
     rts
 
-    section Strings,code
+    section "Strings",CODE
 
 BSDSockLibName: dc.b "bsdsocket.library",0
 
@@ -698,7 +696,7 @@ BSDSockLibName: dc.b "bsdsocket.library",0
     DEFINE_ENV_VAR_NAME BSDSockLibRev
     DEFINE_ENV_VAR_NAME BSDSockLib
 
-    endif
+    endc
 
 ************************** Memory **************************
 ; TODO
@@ -716,7 +714,7 @@ BSDSockLibName: dc.b "bsdsocket.library",0
 
     if E_UAEMajor+E_UAEMinor+E_UAERev
     
-    section Code,code
+    section "Code",CODE
 ;-----------------------------------------------------------
 ; Writes the hosting UAE's major version, minor version and
 ; revision into environment variables $UAEMajor, $UAEMinor,
@@ -767,7 +765,7 @@ _LVOFindName     = -276
     SET_ENV_VAR UAERev
     rts
 
-    section Strings,code
+    section "Strings",CODE
 
 UaeResName: dc.b "uae.resource",0
 
@@ -775,11 +773,11 @@ UaeResName: dc.b "uae.resource",0
     DEFINE_ENV_VAR_NAME UAEMinor
     DEFINE_ENV_VAR_NAME UAERev
 
-    endif
+    endc
 
 *********************  String Utils  ***********************
 
-    section Code,code
+    section "Code",CODE
 ;-----------------------------------------------------------
 ; Prints a 16 bit wide number and returns the string.
 ;
@@ -791,8 +789,8 @@ UaeResName: dc.b "uae.resource",0
 ;-----------------------------------------------------------
 printNumber:
     moveq  #0,d0
-    move.w d1,d0               ; put initial uint16 in D0
-    lea.l .PrintedNumberEnd,a1 ; point A1 to end of buffer
+    move.w d1,d0                 ; put initial uint16 in D0
+    lea    .PrintedNumberEnd,a1  ; point A1 to end of buffer
 
 ; Generate string in D2 (max. 4 characters)
 .loop    
@@ -810,12 +808,12 @@ printNumber:
 
     rts
 
-    section PreinitializedData,data
+    section "PreinitializedData",DATA
 
-    dc.b 0,0,0,0,0        ; 5 chiffres
+    ds.b 5                ; 5 chiffres
 .PrintedNumberEnd: dc.b 0 ; null terminator
 
-    section Code,code
+    section "Code",CODE
 ;-----------------------------------------------------------
 ; Small strlen implementation.
 ;
@@ -827,8 +825,9 @@ printNumber:
 ;-----------------------------------------------------------
 strlen:
     move.l a1,d0  ; preserve the start address
+.test:
     tst.b  (a1)+  ; test character
-    bne.s  *-2    ; if not '\0', back to test
+    bne    .test  ; if not '\0', back to test
     subq   #1,a1  ; back to the null terminator
     suba.l d0,a1
     move.l a1,d0
@@ -836,7 +835,7 @@ strlen:
 
 **************** SET_ENV_VAR Implementation ****************
 
-    section Code,code
+    section "Code",CODE
 ;-----------------------------------------------------------
 ; Set environment variables on any OS (except 1.0)
 ;
@@ -868,7 +867,7 @@ setEnvVar:
     move d0,d0                  ; restore SR
     rts
 
-    section Code,code
+    section "Code",CODE
 ;-----------------------------------------------------------
 ; Resembles the functionality of the setenv Amiga DOS
 ; command, which means it creates a file with the name of
@@ -890,8 +889,7 @@ setEnvVar:
 ; Potentially overwrites D0, D1, A0, A1
 ;-----------------------------------------------------------
 setenv:
-.PRESERVED_REGS: REG d2-d4/a3/a4
-    movem .PRESERVED_REGS,-(sp) ; preserve registers
+    movem d2-d4/a3/a4,-(sp) ; preserve registers
 
 ; 1. get total length of env variable path
     move.l  d1,a1   ; arg1 for strlen
@@ -948,12 +946,12 @@ setenv:
     moveq #FALSE,d0  ; return Failure
 
 .end:
-    movem (sp)+,.PRESERVED_REGS  ; restore registers
+    movem (sp)+,d2-d4/a3/a4  ; restore registers
     rts
 
 **************** SET_ENV_VAR Error Message *****************
 
-    section Code,code
+    section "Code",CODE
 ;-----------------------------------------------------------
 ; Prints a message that shows that SET_ENV_VAR has failed
 ; for an environment variable name
@@ -973,17 +971,17 @@ printSetEnvVarErrMsg:
     bsr    strlen  ; get length in D0
 
     ; Add msg len and 1 for LF
-    addi.b  #MsgPreEnd-MsgPre+1,d0
+    addi.b  #.MsgPreEnd-.MsgPre+1,d0
 
     move.l d0,d3                   ; preserve for Write
     move.l sp,a4                   ; preserve sp
     CREATE_ALIGNED_STACK_FRAME d3
     
-    move.l #MsgPre,a1
+    move.l #.MsgPre,a1
     move.l sp,a0
 .copyPre
     move.b (a1)+,(a0)+
-    cmp.l  #MsgPreEnd,a1
+    cmp.l  #.MsgPreEnd,a1
     bne.b .copyPre
 
     movea.l d2,a1           ; restore A1 to start of name
@@ -999,30 +997,30 @@ printSetEnvVarErrMsg:
 .end
     rts
 
-    section Strings,code
-MsgPre: dc.b "Failed to set $"
-MsgPreEnd
+    section "Strings",CODE
+.MsgPre: dc.b "Failed to set $"
+.MsgPreEnd
 
 
 *************** Set All Environment Variables **************
 
-    section Code,code
+    section "Code",CODE
 ; This is where the individual setters are called.
 ; Extent with new features here!
 setAllVariables:
     ifd setKickstartEnvVars
     bsr   setKickstartEnvVars
-    endif
+    endc
     ifd setCPUAndFPUEnvVars
     bsr   setCPUAndFPUEnvVars
-    endif
+    endc
     ifd setChipsetAndVFreqEnvVars
     bsr   setChipsetAndVFreqEnvVars
-    endif
+    endc
     ifd setBSDSockLibEnvVars
     bsr   setBSDSockLibEnvVars
-    endif
+    endc
     ifd setUAEEnvVars
     bsr   setUAEEnvVars
-    endif
+    endc
     rts
