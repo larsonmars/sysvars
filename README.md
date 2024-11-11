@@ -41,7 +41,7 @@ You can also compile this in VSCode using a [nice VSCode plugin](https://github.
 
 # Testing
 
-There is a filesystem structure in test/echo-test that can be used for testing in vscode (virtual filesystem) or on a bootable floppy/partition on a real Amiga. There is a small script `CreateTestDisk` that creates such a bootable disk. The test can also be executed from Workbench (via IconX).
+There is a filesystem structure in test/sysvars-test that can be used for testing in vscode (virtual filesystem) or on a bootable floppy/partition on a real Amiga. There is a small script `CreateTestDisk` that creates such a bootable disk. The test can also be executed from Workbench (via IconX).
 
 To make it also work with KS 1.2 and 1.3, some files from Workbench1.3 are required, which I cannot distribute. If you need this, just insert your Workbench1.3 disk and start the script `Add OS 1.3 Support`. Note that Workbench prior 1.3 cannot be used, due to the lack of support for environment variables.
 

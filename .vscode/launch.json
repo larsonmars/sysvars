@@ -6,7 +6,7 @@
             "request": "launch",
             "name": "WinUAE Debug 030/882",
             "stopOnEntry": true,
-            "program": "${workspaceFolder}/test/echo-test/sysvars",
+            "program": "${workspaceFolder}/test/sysvars-test/sysvars",
             "remoteProgram": "sysvars",
             "emulatorType": "winuae",
             "emulatorArgs": [
@@ -17,7 +17,7 @@
                 "-s",
                 "fpu_model=68882",
                 "-s",
-                "filesystem=rw,SYSVARS:${workspaceFolder}/test/echo-test",
+                "filesystem=rw,SYSVARS:${workspaceFolder}/test/sysvars-test",
                 "-s",
                 "bsdsocket_emu=true"
             ],
@@ -28,7 +28,7 @@
             "request": "launch",
             "name": "WinUAE Release 030/882",
             "stopOnEntry": false,
-            "program": "${workspaceFolder}/test/echo-test/sysvars",
+            "program": "${workspaceFolder}/test/sysvars-test/sysvars",
             "emulatorType": "winuae",
             "emulatorArgs": [
                 "-s",
@@ -38,7 +38,7 @@
                 "-s",
                 "fpu_model=68882",
                 "-s",
-                "filesystem=rw,SYSVARS:${workspaceFolder}/test/echo-test",
+                "filesystem=rw,SYSVARS:${workspaceFolder}/test/sysvars-test",
                 "-s",
                 "bsdsocket_emu=true"
             ],
@@ -49,11 +49,11 @@
             "request": "launch",
             "name": "FS-UAE Debug",
             "stopOnEntry": false,
-            "program": "${workspaceFolder}/test/echo-test/sysvars",
+            "program": "${workspaceFolder}/test/sysvars-test/sysvars",
             "remoteProgram": "sysvars",
             "emulatorType": "fs-uae",
             "emulatorArgs": [
-                "--hard_drive_0=${workspaceFolder}/test/echo-test",
+                "--hard_drive_0=${workspaceFolder}/test/sysvars-test",
                 "--automatic_input_grab=0"
             ],
             "preLaunchTask": "sysvars Debug Build"

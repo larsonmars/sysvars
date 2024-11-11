@@ -63,7 +63,7 @@ PUSHD "%tmp_dir%"
 MKDIR "sysvars" || GOTO :ERROR
 MKDIR "sysvars\source" || GOTO :ERROR
 
-ROBOCOPY "%root_path%\test\echo-test" "sysvars" /MIR /xd l c OS1.3-Support
+ROBOCOPY "%root_path%\test\sysvars-test" "sysvars" /MIR /xd l c OS1.3-Support
 if errorlevel 8 GOTO :ERROR
 COPY "%~dp0dir.info" "sysvars.info" || GOTO :ERROR
 

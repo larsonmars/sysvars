@@ -19,7 +19,7 @@
 				"excludes": "",
 				"createStartupSequence": true,
 				"createExeFileParentDir": true,
-				"exefilename": "../test/echo-test/ksge36",
+				"exefilename": "../test/sysvars-test/ksge36",
 				"args": [
 					"-bamigahunk",
 					"-Bstatic"
@@ -49,7 +49,7 @@
 				"excludes": "",
 				"createStartupSequence": true,
 				"createExeFileParentDir": true,
-				"exefilename": "../test/echo-test/sysvars",
+				"exefilename": "../test/sysvars-test/sysvars",
 				"args": [
 					"-bamigahunk",
 					"-Bstatic"
@@ -81,7 +81,7 @@
 				"excludes": "",
 				"createStartupSequence": true,
 				"createExeFileParentDir": true,
-				"exefilename": "../test/echo-test/sysvars",
+				"exefilename": "../test/sysvars-test/sysvars",
 				"args": [
 					"-bamigahunk",
 					"-Bstatic"

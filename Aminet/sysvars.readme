@@ -179,7 +179,7 @@ Version 0.11
     command) and also works below OS 1.3
 - Improved the speed of the test script in OS1.2 and OS1.3 by putting the
   ECHO, IF, ELSE, and ENDIF commands into RAM (via resident if in shell)
-- The test (in test/echo-test) can be run from workbench or deployed on a
+- The test (in test/sysvars-test) can be run from workbench or deployed on a
   bootable floppy for real Amigas. The script CreateTestDisk can be called
   with a device name (e.g., df1:) to create such a disk
 - Fix for AROS (here, SetVar cannot access the bsdsocket.library id string)
