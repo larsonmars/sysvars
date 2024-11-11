@@ -1,27 +1,37 @@
-; $VER: SYSVARS ECHO Test Script 0.11 (18.11.2023)
-ksge36
+; $VER: SYSVARS ECHO Test Script 0.14
+c/ksge36
 IF WARN
-  ECHO "Setting things up for KS 1.x..." NOLINE
+  Echo "Setting things up for KS 1.x..."
   IF EXISTS C:RESIDENT ; Run under Workbench
-    RESIDENT ECHO  C:ECHO  pure
-    RESIDENT IF    C:IF    pure
-    RESIDENT ELSE  C:ELSE  pure
-    RESIDENT ENDIF C:ENDIF pure
-  ELSE
-    IF EXISTS OS1.3-Support
-      COPY >NIL: OS1.3-Support RAM: ALL
-      RAM:C/ASSIGN C: RAM:C
-    ELSE
-      ECHO No OS 1.3 Support available
-    ENDIF
+    ECHO "Making commands resident to speed things up..."
+    FailAt 25
+    Resident >NIL: Resident C:Resident pure
+    Resident >NIL: Echo  C:ECHO  pure
+    Resident >NIL: If    C:IF    pure
+    Resident >NIL: Else  C:ELSE  pure
+    Resident >NIL: Endif C:ENDIF pure
+    Resident >NIL: probevar c/probevar pure
+    FailAt 10
+  ELSE ; Cannot use Resident
+    Echo "Copying commands to RAM Disk to speed things up..."
+    Copy >NIL: c RAM:c
+    RAM:c/Assign C: RAM:c
   ENDIF
-  ASSIGN >NIL: ENV: EXISTS
+
+  Assign >NIL: ENV: EXISTS
   IF WARN
-    MAKEDIR RAM:Env
-    ASSIGN ENV: RAM:ENV
-  ENDIF 
-  ECHO " done."
+    Makedir RAM:Env
+    Assign ENV: RAM:ENV
+  ENDIF
+  SetEnv KSGE36 0
+  FF >NIL:
+  Echo "done."
+ELSE
+  Set KSGE36 1
+  Resident >NIL: probevar c/probevar pure
 ENDIF
+
+LAB Test
 
 ECHO "*E[0;0H*E[J"
 ECHO "             ___ _    __ _    _     ____  ____"
@@ -40,190 +50,217 @@ ECHO "                        Results:"
 ECHO "-------------------------------------------------------------"
 ECHO ""
 
-IF $KickVer GE 36
-  IF $KickVer GE 37
-    IF $KickVer GE 39
-      IF $KickVer GE 40
-        IF $KickVer GE 44
-          IF $KickVer GE 45
-            IF $KickVer GE 46
-              IF $KickVer GE 47
-                IF $KickVer GE 48
-                  IF $KickVer GE 49
-                    IF $KickVer GE 50
-                      ECHO "Amiga OS 4+ or MorphOS detected (Kickstart version $KickVer.$KickRev)"
+ECHO "Operating System: " NOLINE
+probevar KickVer
+IF NOT WARN
+  IF $KickVer GE 36
+    IF $KickVer GE 37
+      IF $KickVer GE 39
+        IF $KickVer GE 40
+          IF $KickVer GE 44
+            IF $KickVer GE 45
+              IF $KickVer GE 46
+                IF $KickVer GE 47
+                  IF $KickVer GE 48
+                    IF $KickVer GE 49
+                      IF $KickVer GE 50
+                        ECHO "Amiga OS 4+ or MorphOS ($KickVer.$KickRev)"
+                      ELSE
+                        ECHO "Amiga OS 3.4(?) ($KickVer.$KickRev)"
+                      ENDIF
                     ELSE
-                      ECHO "Amiga OS 3.4(?) detected (Kickstart version $KickVer.$KickRev)"
+                      ECHO "Amiga OS 3.3(?) ($KickVer.$KickRev)"
                     ENDIF
                   ELSE
-                    ECHO "Amiga OS 3.3(?) detected (Kickstart version $KickVer.$KickRev)"
+                    ECHO "Amiga OS 3.2 ($KickVer.$KickRev)"
                   ENDIF
                 ELSE
-                  ECHO "Amiga OS 3.2 detected (Kickstart version $KickVer.$KickRev)"
+                  IF $KickRev EQ 143
+                    ECHO "Amiga OS 3.1.4 ($KickVer.$KickRev)"
+                  ELSE
+                    ECHO "AROS ($KickVer.$KickRev)"
+                  ENDIF
                 ENDIF
               ELSE
-                IF $KickRev EQ 143
-                  ECHO "Amiga OS 3.1.4 detected (Kickstart version $KickVer.$KickRev)"
-                ELSE
-                  ECHO "AROS detected (Kickstart version $KickVer.$KickRev)"
-                ENDIF
+                ECHO "Amiga OS 3.9 ($KickVer.$KickRev)"
               ENDIF
             ELSE
-              ECHO "Amiga OS 3.9 detected (Kickstart version $KickVer.$KickRev)"
+              ECHO "Amiga OS 3.5 ($KickVer.$KickRev)"
             ENDIF
           ELSE
-            ECHO "Amiga OS 3.5 detected (Kickstart version $KickVer.$KickRev)"
+            ECHO "Amiga OS 3.1 ($KickVer.$KickRev)"
           ENDIF
         ELSE
-          ECHO "Amiga OS 3.1 detected (Kickstart version $KickVer.$KickRev)"
+          ECHO "Amiga OS 3.0 ($KickVer.$KickRev)"
         ENDIF
       ELSE
-        ECHO "Amiga OS 3.0 detected (Kickstart version $KickVer.$KickRev)"
+        IF $KickRev GE 71
+          ECHO "Amiga OS 2.05 ($KickVer.$KickRev)"
+        ELSE
+          ECHO "Amiga OS 2.04 ($KickVer.$KickRev)"
+        ENDIF
       ENDIF
     ELSE
-      IF $KickRev GE 71
-        ECHO "Amiga OS 2.05 detected (Kickstart version $KickVer.$KickRev)"
-      ELSE
-        ECHO "Amiga OS 2.04 detected (Kickstart version $KickVer.$KickRev)"
-      ENDIF
+      ECHO "Amiga OS 2.0 ($KickVer.$KickRev)"
     ENDIF
   ELSE
-    ECHO "Amiga OS 2.0 detected (Kickstart version $KickVer.$KickRev)"
+    IF $KickVer GE 34
+      ECHO "Amiga OS 1.3"
+    ELSE
+      IF $KickVer EQ 33
+        ECHO "Amiga OS 1.2"
+      ELSE
+        ECHO "Kickstart below 1.2 (unsupported)"
+      ENDIF
+    ENDIF  
   ENDIF
-
-  IF "$CPU" EQ ""
-    ECHO "CPU: not detected"
-  ELSE
-    ECHO "CPU: $CPU"
-  ENDIF
-  IF "$FPU" EQ ""
-    ECHO "FPU: not detected"
-  ELSE
-    ECHO "FPU: $FPU"
-  ENDIF
-  ECHO "Chipset: $Chipset" NOLINE
-
 ELSE
+  ECHO "<variable for Kickstart version not set>"
+ENDIF
 
-  IF $KickVer GE 34
-    ECHO "Amiga OS 1.3 detected"
-  ELSE
-    IF $KickVer EQ 33
-      ECHO "Amiga OS 1.2 detected"
-    ELSE
-      IF $KickVer EQ ""
-        ECHO "Kickstart not detected"
-      ELSE
-        ECHO "Kickstart below 1.3 detected (unsupported)"
-      ENDIF
-    ENDIF
-  ENDIF
-
+ECHO "CPU: " NOLINE
+probevar CPU
+IF NOT WARN
   IF $CPU EQ 68000
-    ECHO "CPU: 68000"
+    ECHO "68000"
   ELSE
     IF $CPU EQ 68010
-      ECHO "CPU 68010"
+      ECHO "68010"
     ELSE
       IF $CPU EQ 68020
-        ECHO "CPU: 68020"
+        ECHO "68020" NOLINE
       ELSE
         IF $CPU EQ 68030
-          ECHO "CPU: 68030"
+          ECHO "68030" NOLINE
         ELSE
           IF $CPU EQ 68040
-            ECHO "CPU: 68040"
+            ECHO "68040" NOLINE
           ELSE
             IF $CPU EQ 68060
-              ECHO "CPU: 68060"
+              ECHO "68060" NOLINE
             ELSE  
               IF $CPU EQ 68080
-                ECHO "CPU: 68080"
+                ECHO "68080" NOLINE
               ELSE
-                IF $CPU EQ ""
-                  ECHO "no CPU detected"
+                IF $KSGE36 EQ 1
+                  ECHO "$CPU" NOLINE
                 ELSE
-                  ECHO "Unknown CPU"
+                  ECHO "other" NOLINE
                 ENDIF
               ENDIF
             ENDIF
           ENDIF
         ENDIF
       ENDIF
-    ENDIF
-  ENDIF
-
-  IF $FPU EQ "internal"
-    ECHO Internal FPU
-  ELSE
-    IF $FPU EQ "68881"
-      ECHO "FPU: 68881"
-    ELSE
-      IF $FPU EQ "68882"
-        ECHO "FPU: 68882"
-      ELSE
-        IF $FPU EQ ""
-          ECHO "FPU: none detected"
+      probevar FPU
+      IF NOT WARN
+        IF "$FPU" EQ ""
+          ECHO " (no FPU)"
         ELSE
-          ECHO "Unknown FPU"
+          ECHO ", FPU: " NOLINE
+          IF $FPU EQ "internal"
+            ECHO yes
+          ELSE
+            IF $FPU EQ "68881"
+              ECHO "68881"
+            ELSE
+              IF $FPU EQ "68882"
+                ECHO "68882"
+              ELSE
+                IF $KSGE36 EQ 1
+                  ECHO $FPU
+                ELSE
+                  ECHO "Unknown"
+                ENDIF
+              ENDIF
+            ENDIF
+          ENDIF
         ENDIF
+      ELSE
+        ECHO "<variable for FPU not set>"
       ENDIF
     ENDIF
   ENDIF
+ELSE
+  ECHO "<variable for CPU not set>"
+ENDIF
 
+ECHO "Chipset: " NOLINE
+probevar Chipset
+IF NOT WARN
   IF $Chipset EQ SAGA
-    ECHO "Chipset: SAGA" NOLINE
+    ECHO "SAGA" NOLINE
   ELSE
     IF $Chipset EQ AGA
-      ECHO "Chipset: AGA" NOLINE
+      ECHO "AGA" NOLINE
     ELSE
       IF $Chipset EQ ECS
-        ECHO "Chipset: ECS" NOLINE
+        ECHO "ECS" NOLINE
       ELSE
         IF $Chipset EQ OCS
-          ECHO "Chipset: OCS" NOLINE
+          ECHO "OCS" NOLINE
         ELSE
-          ECHO "Chipset: Unknown" NOLINE
+          IF $KSGE36 EQ 1
+            ECHO $Chipset
+          ELSE
+            ECHO "other" NOLINE
+          ENDIF
         ENDIF
       ENDIF
     ENDIF
   ENDIF
-ENDIF
-
-IF $VFreq EQ 50
-  ECHO " PAL (50Hz)"
 ELSE
-  IF $VFreq EQ 60
-    ECHO " NTSC (60Hz)"
-  ELSE
-    ECHO " (unknown vertical frequency)"
-  ENDIF
+  ECHO "<variable for Chipset not set>" NOLINE
 ENDIF
 
-IF $CPU EQ 68080
-  IF $VampireType EQ V2_600
-    ECHO "Detected Vampire V2 600"
+probevar VFreq
+IF NOT WARN
+  IF $VFreq EQ 50
+    ECHO ", running in PAL (50Hz)"
   ELSE
-    IF $VampireType EQ V2_500
-      ECHO "Detected Vampire V2 500"
+    IF $VFreq EQ 60
+      ECHO ", running in NTSC (60Hz)"
     ELSE
-      IF $VampireType EQ V4_500/1000/2000
-        ECHO "Detected Vampire V4 Firebird/Phoenix/Salamander"
+      IF $KSGE36 EQ 1
+        ECHO ", running at ${VFreq}Hz"
       ELSE
-        IF $VampireType EQ V4_1200
-          ECHO "Detected Vampire V4 Icedrake"
+        ECHO ", running at neither 50Hz nor 60Hz"
+      ENDIF
+    ENDIF
+  ENDIF
+ELSE
+  ECHO ", <variable vor vertical frequency not set>"
+ENDIF
+
+ECHO "RAM: " NOLINE
+
+probevar TotalChipRam
+IF NOT WARN
+  IF $TotalChipRam EQ 256
+    ECHO "256K" NOLINE
+  ELSE
+    IF $TotalChipRam EQ 512
+      ECHO "512K" NOLINE
+    ELSE
+      IF $TotalChipRam EQ 1024
+        ECHO "1MB" NOLINE
+      ELSE
+        IF $TotalChipRam EQ 2048
+          ECHO "2MB" NOLINE
         ELSE
-          IF $VampireType EQ V4_Standalone
-            ECHO "Detected Vampire V4 Standalone"
+          IF $TotalChipRam EQ 4096
+            ECHO "4MB" NOLINE
           ELSE
-            IF $VampireType EQ V2_1200
-              ECHO "Detected Vampire V2 1200"
+            IF $TotalChipRam EQ 8192
+              ECHO "8MB" NOLINE
             ELSE
-              IF $VampireType EQ V4_600
-                ECHO "Detected Vampire V4 Manticore"
+              IF $KSGE36 EQ 1
+                ECHO "${TotalChipRam}K" NOLINE
               ELSE
-                IF $VampireType EQ unknown
-                  ECHO "Detected Vampire of unknown type"
+                IF $TotalChipRam GT 8192
+                  ECHO "> 8MB" NOLINE
+                ELSE
+                  ECHO "???" NOLINE
                 ENDIF
               ENDIF
             ENDIF
@@ -232,33 +269,181 @@ IF $CPU EQ 68080
       ENDIF
     ENDIF
   ENDIF
-
-  IF $KickVer GE 36
-    IF NOT "$VampireCoreRev" EQ ""
-      ECHO "Vampire Core Revision: $VampireCoreRev"
-    ENDIF
-    IF NOT "$VampireClockMult" EQ ""
-      ECHO "Vampire Clock Multiplier: $VampireClockMult"
-    ENDIF
-  ENDIF
-ENDIF
-
-IF "$BSDSockLib" EQ ""
-  ECHO "bsdsocket.library not available"
+  ECHO " chip" NOLINE
 ELSE
-  IF $KickVer GE 36
-    ECHO "bsdsocket.library V$BSDSockLibVer.$BSDSockLibRev named *"$BSDSockLib*" detected"
+  ECHO "<variable for Chip RAM not set>" NOLINE
+ENDIF
+probevar TotalSlowRam
+IF NOT WARN
+  ECHO ", " NOLINE
+  IF $TotalSlowRam EQ 256
+    ECHO "256K" NOLINE
   ELSE
-    ECHO "bsdsocket.library detected"
+    IF $TotalSlowRam EQ 512
+      ECHO "512K" NOLINE
+    ELSE
+      IF $TotalSlowRam EQ 1024
+        ECHO "1MB" NOLINE
+      ELSE
+        IF $TotalSlowRam EQ 1536
+          ECHO "1.5MB" NOLINE
+        ELSE
+          IF $TotalSlowRam EQ 1792
+            ECHO "1.8MB" NOLINE
+          ELSE
+            IF $KSGE36 EQ 1
+              ECHO "${TotalSlowRam}K" NOLINE
+            ELSE
+              ECHO "???" NOLINE
+            ENDIF
+          ENDIF
+        ENDIF
+      ENDIF
+    ENDIF
+  ENDIF
+  ECHO " slow" NOLINE
+ENDIF
+
+IF $KSGE36 EQ 0
+  SETENV OfferFastMemFirstTest 0
+ENDIF
+
+ECHO ", " NOLINE
+probevar TotalFastRam
+IF NOT WARN
+  IF $TotalFastRam EQ 0
+    ECHO "no" NOLINE
+  ELSE
+    IF $TotalFastRam EQ 64
+      ECHO "64K" NOLINE
+    ELSE
+      IF $TotalFastRam EQ 128
+        ECHO "128K" NOLINE
+      ELSE
+        IF $TotalFastRam EQ 256
+          ECHO "256K" NOLINE
+        ELSE
+          IF $TotalFastRam EQ 512
+            ECHO "512K" NOLINE
+          ELSE
+            IF $TotalFastRam EQ 1024
+              ECHO "1MB" NOLINE
+            ELSE
+              IF $TotalFastRam EQ 2048
+                ECHO "2MB" NOLINE
+              ELSE
+                IF $TotalFastRam EQ 4096
+                  ECHO "4MB" NOLINE
+                ELSE
+                  IF $TotalFastRam EQ 8192
+                    ECHO "8MB" NOLINE
+                  ELSE
+                    IF $KSGE36 EQ 1
+                      ECHO " ${TotalFastRam}K" NOLINE
+                    ELSE
+                      IF $TotalFastRam GT 8192
+                        ECHO "Over 8MB" NOLINE
+                      ELSE
+                        ECHO "???" NOLINE
+                      ENDIF
+                    ENDIF
+                  ENDIF
+                ENDIF
+              ENDIF
+            ENDIF
+          ENDIF
+        ENDIF
+      ENDIF
+    ENDIF
+  ENDIF
+  ECHO " fast"
+  IF $TotalFastRam GT 0 VAL
+    probevar SlowRamFirst
+    IF NOT WARN
+      ECHO "WARNING: SlowMem is first in memory list!"
+      ECHO "Consider running FastMemFirst for improved performance!"
+      SETENV OfferFastMemFirstTest 1
+    ENDIF
+  ENDIF
+ELSE
+  ECHO "<variable for Fast RAM not set>"
+ENDIF
+
+probevar VampireType
+IF NOT WARN
+  ECHO "Vampire: " NOLINE
+  IF $VampireType EQ V2_600
+    ECHO "V2 600" NOLINE
+  ELSE
+    IF $VampireType EQ V2_500
+      ECHO "V2 500" NOLINE
+    ELSE
+      IF $VampireType EQ V4_500/1000/2000
+        ECHO "V4 Firebird/Phoenix/Salamander" NOLINE
+      ELSE
+        IF $VampireType EQ V4_1200
+          ECHO "V4 Icedrake" NOLINE
+        ELSE
+          IF $VampireType EQ V4_Standalone
+            ECHO "V4 Standalone" NOLINE
+          ELSE
+            IF $VampireType EQ V2_1200
+              ECHO "V2 1200" NOLINE
+            ELSE
+              IF $VampireType EQ V4_600
+                ECHO "V4 Manticore" NOLINE
+              ELSE
+                IF $KSGE36
+                  ECHO "type $VampireType" NOLINE
+                ELSE
+                  ECHO "unknown" NOLINE
+                ENDIF
+              ENDIF
+            ENDIF
+          ENDIF
+        ENDIF
+      ENDIF
+    ENDIF
+  ENDIF
+  IF $KSGE36 EQ 1
+    probevar VampireClockMult
+    IF NOT WARN
+      ECHO ", clocked at: ${VampireClockMult}x" NOLINE
+    ENDIF
+    probevar VampireCoreRev
+    IF NOT WARN
+      ECHO ", Core Rev.: $VampireCoreRev" NOLINE
+    ENDIF
+  ENDIF
+  ECHO ""
+ENDIF
+
+
+probevar BSDSockLib
+IF NOT WARN
+  IF $KSGE36 EQ 1
+    ECHO "Detected bsdsocket.library V$BSDSockLibVer.$BSDSockLibRev named *"$BSDSockLib*""
+  ELSE
+    ECHO "Detected bsdsocket.library"
   ENDIF
 ENDIF
 
-IF "$UAEMajor" EQ ""
-  ECHO "No UAE detected"
-ELSE
-  IF $KickVer GE 36
-    ECHO "UAE V$UAEMajor.$UAEMinor.$UAERev detected"
+probevar UAEMajor
+IF NOT WARN
+  IF $KSGE36 EQ 1
+    ECHO "UAE V$UAEMajor.$UAEMinor.$UAERev"
   ELSE
     ECHO "UAE detected"
+  ENDIF
+ENDIF
+
+probevar OfferFastMemFirstTest
+IF NOT WARN
+  IF $OfferFastMemFirstTest EQ 1
+    ASK "Do you want to execute FastMemFirst and repeat the test?"
+    IF WARN
+      OS1.3-Support/FastMemFirst
+      SKIP Test BACK
+    ENDIF
   ENDIF
 ENDIF

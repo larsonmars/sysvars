@@ -1,11 +1,3 @@
 build
-test/sysvars-test/sysvars
-test/sysvars-test/ksge36
-test/sysvars-test/c
-test/sysvars-test/l
-test/sysvars-test/OS1.3-Support
 .DS_Store
-bin
 .vscode/settings.json
-.vscode/launch.json
-*.lha

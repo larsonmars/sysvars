@@ -63,19 +63,24 @@ PUSHD "%tmp_dir%"
 MKDIR "sysvars" || GOTO :ERROR
 MKDIR "sysvars\source" || GOTO :ERROR
 
-ROBOCOPY "%root_path%\test\sysvars-test" "sysvars" /MIR /xd l c OS1.3-Support
+ROBOCOPY "%root_path%\test\sysvars-test" "sysvars" /MIR /xd l c
 if errorlevel 8 GOTO :ERROR
+
 COPY "%~dp0dir.info" "sysvars.info" || GOTO :ERROR
 
 ROBOCOPY "%root_path%\source" "sysvars\source" /MIR
 if errorlevel 8 GOTO :ERROR
 
+MKDIR "sysvars\c" || GOTO :ERROR
+
 ECHO Assembling...
-"%vasmm68k_mot%" -m68000 -kick1hunks -chklabels -Fhunk -nosym -wfail -warncomm -x "sysvars\source\sysvars.s" -o sysvars.o || GOTO :ERROR
-"%vasmm68k_mot%" -m68000 -kick1hunks -chklabels -Fhunkexe -nosym -wfail -warncomm -x "sysvars\source\ksge36.s" -o sysvars\ksge36 || GOTO :ERROR
-ECHO Linking...
-"%vlink%" -b amigahunk -B static sysvars.o -o "sysvars\sysvars" || GOTO :ERROR
-DEL sysvars.o
+:: "%vasmm68k_mot%" -m68000 -kick1hunks -chklabels -Fhunk -nosym -wfail -warncomm -x "sysvars\source\sysvars.s" -o sysvars.o || GOTO :ERROR
+"%vasmm68k_mot%" -m68000 -kick1hunks -chklabels -Fhunkexe -nosym -wfail -warncomm -x "sysvars\source\sysvars.s" -o sysvars\sysvars || GOTO :ERROR
+"%vasmm68k_mot%" -m68000 -kick1hunks -chklabels -Fhunkexe -nosym -wfail -warncomm -x "sysvars\source\ksge36.s" -o sysvars\c\ksge36 || GOTO :ERROR
+"%vasmm68k_mot%" -m68000 -kick1hunks -chklabels -Fhunkexe -nosym -wfail -warncomm -x "sysvars\source\probevar.s" -o sysvars\c\probevar || GOTO :ERROR
+::ECHO Linking...
+::"%vlink%" -b amigahunk -B static sysvars.o -o "sysvars\sysvars" || GOTO :ERROR
+::DEL sysvars.o
 
 ECHO Generating readme...
 powershell -Command "(gc '%~dp0sysvars.readme') -replace '\$author\$', '%author%' -replace '\$uploader\$', '%uploader%' | Out-File -encoding ASCII 'sysvars\sysvars.readme'" || GOTO :ERROR

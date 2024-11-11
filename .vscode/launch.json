@@ -4,18 +4,22 @@
         {
             "type": "amiga-assembly",
             "request": "launch",
-            "name": "WinUAE Debug 030/882",
-            "stopOnEntry": true,
+            "name": "SYSVARS WinUAE Debug",
+            "stopOnEntry": false,
             "program": "${workspaceFolder}/test/sysvars-test/sysvars",
             "remoteProgram": "sysvars",
             "emulatorType": "winuae",
             "emulatorArgs": [
                 "-s",
                 "cpu_type=68030",
-                 "-s",
+                "-s",
                 "cpu_model=68030",
                 "-s",
                 "fpu_model=68882",
+                "-s",
+                "bogomem_size=2",
+                "-s",
+                "fastmem_size=4",
                 "-s",
                 "filesystem=rw,SYSVARS:${workspaceFolder}/test/sysvars-test",
                 "-s",
@@ -26,7 +30,7 @@
         {
             "type": "amiga-assembly",
             "request": "launch",
-            "name": "WinUAE Release 030/882",
+            "name": "SYSVARS WinUAE Release",
             "stopOnEntry": false,
             "program": "${workspaceFolder}/test/sysvars-test/sysvars",
             "emulatorType": "winuae",
@@ -38,11 +42,29 @@
                 "-s",
                 "fpu_model=68882",
                 "-s",
+                "bogomem_size=2",
+                "-s",
+                "fastmem_size=4",
+                "-s",
                 "filesystem=rw,SYSVARS:${workspaceFolder}/test/sysvars-test",
                 "-s",
                 "bsdsocket_emu=true"
             ],
-            "preLaunchTask": "sysvars Release Build"
+            "preLaunchTask": "Release Build"
+        },
+        {
+            "type": "amiga-assembly",
+            "request": "launch",
+            "name": "PROBEVAR WinUAE Debug",
+            "stopOnEntry": false,
+            "program": "${workspaceFolder}/test/probevar-test/probevar",
+            "remoteProgram": "probevar",
+            "emulatorType": "winuae",
+            "emulatorArgs": [
+                "-s",
+                "filesystem=rw,SYSVARS:${workspaceFolder}/test/probevar-test",
+            ],
+            "preLaunchTask": "probevar Debug Build"
         },
         {
             "type": "amiga-assembly",

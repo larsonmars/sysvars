@@ -1,0 +1,46 @@
+; $VER: PROBEVAR ECHO Test Script 0.14
+c/ksge36
+IF WARN
+  Echo "Setting things up for KS 1.x..."
+  IF EXISTS C:RESIDENT ; Run under Workbench
+    ECHO "Making commands resident to speed things up..."
+    FailAt 25
+    Resident >NIL: Resident C:Resident pure
+    Resident >NIL: Echo  C:ECHO  pure
+    Resident >NIL: If    C:IF    pure
+    Resident >NIL: Else  C:ELSE  pure
+    Resident >NIL: Endif C:ENDIF pure
+    FailAt 10
+  ELSE ; Cannot use Resident
+    Echo "Copying commands to RAM Disk to speed things up..."
+    Copy >NIL: c RAM:c
+    RAM:c/Assign C: RAM:c
+  ENDIF
+
+  Assign >NIL: ENV: EXISTS
+  IF WARN
+    Makedir RAM:Env
+    Assign ENV: RAM:ENV
+  ENDIF
+  SetEnv KSGE36 0
+  Echo "done."
+ELSE
+  Set KSGE36 1
+ENDIF
+
+ECHO "probing existant variable KSGE36"
+
+probevar KSGE36
+IF WARN
+  ECHO FAILED
+ELSE
+  ECHO SUCCESS
+ENDIF
+
+ECHO "probing inexistant variable XYZ"
+probevar XYZ
+IF WARN
+  ECHO SUCCESS
+ELSE
+  ECHO FAILED
+ENDIF

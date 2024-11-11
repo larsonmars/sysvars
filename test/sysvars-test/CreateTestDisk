@@ -2,11 +2,13 @@
 
 ; Creates a SYSVARS Test Disk
 
-ksge36
+c/ksge36
 IF WARN
  FORMAT DRIVE <Destination> NAME SYSVARS NOFFS NOICONS
 ELSE
  FORMAT DEVICE=<Destination> NAME=SYSVARS OFS NOICONS
 ENDIF
-INSTALL DF1:
-COPY "" df1: ALL CLONE
+INSTALL <Destination>:
+COPY "" <Destination>: ALL CLONE
+PROTECT <Destination>:c/ksge36 +p
+PROTECT <Destination>:c/probevar +p
