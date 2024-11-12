@@ -10,16 +10,16 @@ Currently, the following variables are supported:
 <a name="overview_table"></a>
 |Variable|Availability|Description
 |--------------|------------------------------------------|------------------------------------------
-| **``$CPU``** | always | installed CPU, for example ``68030`` (68080 is supported, but see [limitations](#Kickstart-1.3-and-below))
-| **``$FPU``** | if CPU ≥ 68020 | installed FPU, one of ``68881``, ``68882``, ``internal``, or empty for LC/EC 040 and 060 CPUs where no FPU is available (see [limitations](#Kickstart-1.3-and-below))
+| **``$CPU``** | always | installed CPU, for example ``68030`` (68080 is supported, but see [limitations](#Kickstart-13-and-below))
+| **``$FPU``** | if CPU ≥ 68020 | installed FPU, one of ``68881``, ``68882``, ``internal``, or empty for LC/EC 040 and 060 CPUs where no FPU is available (see [limitations](#Kickstart-13-and-below))
 | **``$Chipset``** | always | installed graphics chipset, one of ``OCS``, ``ECS``, ``AGA``, ``SAGA``
 | **``$VFreq``** | always | vertical frequency of the native display, can be either ``50`` (PAL 50Hz) or ``60`` (NTSC 60Hz)
 | **``$TotalChipRam``** | always | total amount of Chip RAM installed (in KB)
 | **``$TotalFastRam``** | always | total amount of real Fast[^1] RAM installed (in KB)
 | **``$TotalSlowRam``** | if present | total amount of Slow[^1] RAM installed (in KB)
 | **``$SlowRamFirst``** | see description | The variable is set to ``1`` if Slow RAM is first to be allocated as non-Chip RAM[^2], otherwise this variable is unavailable
-| **``$KickVer``** & **``$KickRev``** | always | Kickstart version and revision (see [limitations](#Kickstart-1.2-and-below))
-| **``$BSDSockLib``**, **``$BSDSockLibVer``**, **``$BSDSockLibRev``** | if present | ID, version and revision of bsdsocket.library available, empty if bsdsocket.library is not available
+| **``$KickVer``** & **``$KickRev``** | always | Kickstart version and revision (see [limitations](#Kickstart-12-and-below))
+| **``$BSDSockLib``**, **``$BSDSockLibVer``**, **``$BSDSockLibRev``** | if present | ID, version and revision of bsdsocket.library
 | **``$UAEMajor``**, **``$UAEMinor``**, **``$UAERev``** | if detected | major, minor version and revision of UAE detected (see [limitations](#UAE-detection))
 | **``$VampireType``** | if CPU = 68080 | type of vampire installed, for example "V2_600", or "V4_Standalone"
 | **``$VampireCoreRev``** | if CPU = 68080 | core revision of the currently flashed firmware .jic file[^3]
