@@ -42,6 +42,8 @@ ECHO ", Else" NOLINE
 CP Workbench1.3:c/Else c/ CLONE
 ECHO ", Endif" NOLINE
 CP Workbench1.3:c/Endif TO c/ CLONE
+ECHO ", Eval" NOLINE
+CP Workbench1.3:c/Eval TO c/ CLONE
 ECHO ", FailAt" NOLINE
 CP Workbench1.3:c/FailAt TO c/ CLONE
 ECHO ", FastMemFirst" NOLINE
@@ -58,6 +60,8 @@ ECHO ", SetEnv" NOLINE
 CP Workbench1.3:c/SetEnv TO c/ CLONE
 ECHO ", Skip" NOLINE
 CP Workbench1.3:c/Skip TO c/ CLONE
+ECHO ", Type" NOLINE
+CP Workbench1.3:c/Type TO c/ CLONE
 ECHO " -> done"
 
 ECHO "Copying Ram-Handler..." NOLINE
