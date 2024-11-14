@@ -17,6 +17,7 @@ Currently, the following variables are supported:
 | **``$TotalChipRam``** | always | total amount of Chip RAM installed (in KB)
 | **``$TotalFastRam``** | always | total amount of real Fast[^1] RAM installed (in KB)
 | **``$TotalSlowRam``** | if present | total amount of Slow[^1] RAM installed (in KB)
+| **``$TotalRam``** | always | Sum of Chip, Fast and Slow RAM for convenience (in KB)
 | **``$SlowRamFirst``** | see description | The variable is set to ``1`` if Slow RAM is first to be allocated as non-Chip RAM[^2], otherwise this variable is unavailable
 | **``$KickVer``** & **``$KickRev``** | always | Kickstart version and revision (see [limitations](#Kickstart-12-and-below))
 | **``$BSDSockLib``**, **``$BSDSockLibVer``**, **``$BSDSockLibRev``** | if present | ID, version and revision of bsdsocket.library
@@ -24,7 +25,6 @@ Currently, the following variables are supported:
 | **``$VampireType``** | if CPU = 68080 | type of vampire installed, for example "V2_600", or "V4_Standalone"
 | **``$VampireCoreRev``** | if CPU = 68080 | core revision of the currently flashed firmware .jic file[^3]
 | **``$VampireClockMult``** | if CPU = 68080 | vampire clock multiplier
-
 
 # Requirements
 
@@ -49,7 +49,9 @@ You can also compile this in VSCode using a [nice VSCode plugin](https://github.
 
 There is a filesystem structure in test/sysvars-test that can be used for testing in vscode (virtual filesystem) or on a bootable floppy/partition on a real Amiga. The actual test is the startup-sequence. It uses some other utilities described [here](#The-other-Utilities).
 
-There is a small script `CreateTestDisk` that creates such a bootable disk. The test can also be executed from Workbench (via IconX). To make it also work with KS 1.2 and 1.3, some files from Workbench 1.3 are required, which I cannot distribute. If you need this, just insert your Workbench 1.3 disk and start the script `Add OS 1.3 Support`. Note that Workbench prior 1.3 cannot be used, due to the lack of support for environment variables.
+There is a small script that creates such a bootable disk. Say, you have an empty floppy disk in DF1, then in a shell, just `CD` into the sysvars directory and enter `CreateTestDisk df1`
+
+The test can also be executed from Workbench 1.3 and up by double-clicking the Sysvars icon (via IconX). To make the disk also boot with KS 1.2 and 1.3, some files from Workbench 1.3 are required, which cannot be distributed here. If you need this, just insert your Workbench 1.3 disk and double-click the `Add OS 1.3 Support` icon. Note that Workbench prior 1.3 cannot be used, due to the lack of support for environment variables.
 
 # Why such a Tool?
 

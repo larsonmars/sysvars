@@ -1,4 +1,4 @@
-; $VER: SYSVARS ECHO Test Script 0.14
+; $VER: SYSVARS ECHO Test Script 0.15
 c/ksge36
 IF WARN
   Echo "Setting things up for KS 1.x..."
@@ -269,7 +269,7 @@ IF NOT WARN
       ENDIF
     ENDIF
   ENDIF
-  ECHO " chip" NOLINE
+  ECHO " Chip" NOLINE
 ELSE
   ECHO "<variable for Chip RAM not set>" NOLINE
 ENDIF
@@ -301,7 +301,7 @@ IF NOT WARN
       ENDIF
     ENDIF
   ENDIF
-  ECHO " slow" NOLINE
+  ECHO " Slow" NOLINE
 ENDIF
 
 IF $KSGE36 EQ 0
@@ -339,7 +339,7 @@ IF NOT WARN
                     ECHO "8MB" NOLINE
                   ELSE
                     IF $KSGE36 EQ 1
-                      ECHO " ${TotalFastRam}K" NOLINE
+                      ECHO "${TotalFastRam}K" NOLINE
                     ELSE
                       IF $TotalFastRam GT 8192
                         ECHO "Over 8MB" NOLINE
@@ -356,17 +356,22 @@ IF NOT WARN
       ENDIF
     ENDIF
   ENDIF
-  ECHO " fast"
-  IF $TotalFastRam GT 0 VAL
-    probevar SlowRamFirst
-    IF NOT WARN
-      ECHO "WARNING: SlowMem is first in memory list!"
-      ECHO "Consider running FastMemFirst for improved performance!"
-      SETENV OfferFastMemFirstTest 1
-    ENDIF
+  ECHO " Fast" NOLINE
+ELSE
+  ECHO "<variable for Fast RAM not set>" NOLINE
+ENDIF
+
+probevar TotalRam
+IF NOT WARN
+  ECHO ", Total: " NOLINE
+  IF $KSGE36 EQ 1
+    ECHO "${TotalRam}K"
+  ELSE
+    EVAL <ENV:TotalRam >NIL: LFORMAT=%NK TO RAM:mem ?
+    TYPE RAM:mem
   ENDIF
 ELSE
-  ECHO "<variable for Fast RAM not set>"
+  ECHO "<variable for total RAM not set>" NOLINE
 ENDIF
 
 probevar VampireType
@@ -437,12 +442,14 @@ IF NOT WARN
   ENDIF
 ENDIF
 
-probevar OfferFastMemFirstTest
-IF NOT WARN
-  IF $OfferFastMemFirstTest EQ 1
+IF NOT $TotalFastRam EQ 0
+  probevar SlowRamFirst
+  IF NOT WARN
+    ECHO "WARNING: SlowMem is first in memory list!"
+    ECHO "Consider running FastMemFirst for improved performance!"
     ASK "Do you want to execute FastMemFirst and repeat the test?"
     IF WARN
-      OS1.3-Support/FastMemFirst
+      FastMemFirst
       SKIP Test BACK
     ENDIF
   ENDIF
