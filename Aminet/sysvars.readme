@@ -2,7 +2,7 @@ Short:        Put system information in env. variables
 Uploader:     Lars Stockmann (larsonmars@email.de)
 Author:       Lars Stockmann (larsonmars@email.de)
 Type:         util/boot
-Version:      0.14
+Version:      0.15
 Architecture: m68k-amigaos >= 1.3
 Distribution: Aminet
 Kurz:         Legt System infos in Umgebungsvariablen
@@ -39,6 +39,7 @@ always:
                  50 (PAL 50Hz) or 60 (NTSC 60Hz)
 - $TotalChipRam: Total amount of Chip RAM installed in KB
 - $TotalFastRam: Total amount of real Fast RAM installed in KB
+- $TotalRam:     Total amount RAM installed in KB
 - $KickVer:      Kickstart version
 - $KickRev:      Kickstart revision (See OS 1.2 LIMITATIONS)
 
@@ -203,6 +204,12 @@ The code is licensed under the MIT License
 _____________________________________________________________________________
 
 RELEASE HISTORY
+
+Version 0.15
+- Added $TotalRam variable as a convenience
+- Fixed Vampire detection
+- Fixed FastMemFirst integration in test
+- Code Cleanup
 
 Version 0.14
 - Added memory-related variables that allow to distinguish Slow Ram from real
