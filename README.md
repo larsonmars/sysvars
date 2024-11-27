@@ -49,7 +49,7 @@ You can also compile this in VSCode using a [nice VSCode plugin](https://github.
 
 There is a filesystem structure in test/sysvars-test that can be used for testing in vscode (virtual filesystem) or on a bootable floppy/partition on a real Amiga. The actual test is the startup-sequence. It uses some other utilities described [here](#The-other-Utilities).
 
-There is a small script that creates such a bootable disk. Say, you have an empty floppy disk in DF1, then in a shell, just `CD` into the sysvars directory and enter `CreateTestDisk df1`
+There is a small script that creates such a bootable disk. Say, you have an empty floppy disk in DF1, then in a shell, just `CD` into the sysvars directory and enter `execute CreateTestDisk df1`
 
 The test can also be executed from Workbench 1.3 and up by double-clicking the Sysvars icon (via IconX). To make the disk also boot with KS 1.2 and 1.3, some files from Workbench 1.3 are required, which cannot be distributed here. If you need this, just insert your Workbench 1.3 disk and double-click the `Add OS 1.3 Support` icon. Note that Workbench prior 1.3 cannot be used, due to the lack of support for environment variables.
 
