@@ -1,6 +1,6 @@
 ************************************************************
 *                                                          *
-*                      SYSVARS V.0.15                      *
+*                     SYSVARS V.0.15.1                     *
 *                                                          *
 * SPDX-FileCopyrightText: (c) 2023-2024 Lars Stockmann     *
 * SPDX-License-Identifier: MIT                             *
@@ -13,7 +13,7 @@
 ************************************************************
 
 PROGVER: macro
-    dc.b "$VER: SYSVARS 0.15",0
+    dc.b "$VER: SYSVARS 0.15.1",0
     endm
 
 ******************** Feature Selection *********************
@@ -555,19 +555,14 @@ setVampireEnvVars:
 VAMP_CORE_REV_ADDR = $dff3ea
 VAMP_VER_ADDR      = $dff3fc
 
-; We skip the Vampire detection if no 68080 CPU and no SAGA.
-; is present. Thus, first check again AttnFlags...
+; We skip the Vampire detection if no 68080 CPU is present.
+; Thus, check again AttnFlags...
     movea.l EXEC_BASE,a0          ; get exec base in A0
     move.w  _LVOAttnFlags(a0),d5  ; get cpu info in D5
     btst    #10,d5
-    beq.b   .noVampire
+    bne.b   .haveVampire
 
-    ; Check SAGA via chip ID of POTGOR register
-    move.w POTGOR,d0
-    andi.w #$fe,d0       ; mask chip ID (bits 1-7)
-    bne.b  .haveVampire
-    
-.noVampire:
+; no vampire    
     DELETE_ENV_VAR VampireCoreRev
     DELETE_ENV_VAR VampireType
     DELETE_ENV_VAR VampireClockMult
@@ -768,10 +763,13 @@ mh_Upper      = $18
     move.l _LVOMemList(a0),d0  ; get memory list
 
 ; initialize registers
-    suba.l a4,a4      ; A4 will hold total ram  
-    move.l #$ffff,d4  ; need this frequently as operand
-    moveq  #0,d5      ; D5 will hold total chip ram  
-    moveq  #0,d6      ; D6 will hold total fast ram
+; Note: D0 - D3 are potentially overwritten by SET_ENV_VAR
+; and DELETE_ENV_VAR. Hence, only use D4 and up
+
+    moveq  #0,d4      ; D4 will hold total chip ram  
+    moveq  #0,d5      ; D5 will hold total fast ram
+    moveq  #0,d6      ; D6 will hold total slow ram  
+    move.l #$ffff,d7  ; D7 needed as operand
 
 .traverseMemList:
     movea.l d0,a3
@@ -782,58 +780,65 @@ mh_Upper      = $18
     move.l  mh_Lower(a3),a1       ; mem start address
     move.l  mh_Upper(a3),a2       ; mem end address
 
-; Calculate the size in D3, rounding up on 64K boundary
-    move.l a2,d3
-    sub.l  a1,d3
-    add.l  d4,d3
-    swap   d3    
-    and.l  d4,d3
-    lsl.l  #6,d3
+; Calculate the size in D2, rounding up on 64K boundary
+    move.l a2,d2
+    sub.l  a1,d2
+    add.l  d7,d2
+    swap   d2    
+    and.l  d7,d2
+    lsl.l  #6,d2
 
 ; Check if it is chip ram
     btst  #CHIP_MEM_BIT,d1
     beq.b .processOtherMem
-    add.l d3,d5             ; add amount to total chip ram
-    add.l d3,a4             ; Add to total amount of RAM
+    add.l d2,d4             ; add amount to total chip ram
     bra.b .next
 
 .processOtherMem:
     btst   #FAST_MEM_BIT,d1
     beq.b  .next
-    add.l  d3,a4            ; Add to total amount of RAM
     move.l a1,d0    
     swap   d0
     cmp.w  #$c0,d0          ; usuallly, slow ram reside here
     beq.b  .processSlowRam
-    add.l  d3,d6            ; add amount to total fast ram
-
-.next:
-    move.l (a3),d0
-    bne    .traverseMemList
-
-; done with the traversal, set the variables
-    SET_NUMERIC_ENV_VAR TotalRam,a4
-    SET_NUMERIC_ENV_VAR TotalChipRam,d5
-    SET_NUMERIC_ENV_VAR TotalFastRam,d6
-
-    rts
+    add.l  d2,d5            ; add amount to total fast ram
+    bra.b .next
 
 .processSlowRam:
-    ; We immediately set the TotalSlowRam variable
-    SET_NUMERIC_ENV_VAR TotalSlowRam,d3
+    add.l  d2,d6  ; add amount to total slow ram
 
     ; Now test if slow ram came first (total fast ram = 0)
-    tst.l d6
-    ; if not remove th SlowRamFirst variable
-    bne   .removeVariable
+    tst.l d5
+    ; if not remove the SlowRamFirst variable
+    bne   .removeSlowRamFirstVariable
     ; otherwise set this variable to '1' (D3 is the length)
     moveq #1,d3
     SET_ENV_VAR SlowRamFirst,#_SlowRamFirstVal,d3
-    bra   .next
+    bra.b .next
 
-.removeVariable:
+.removeSlowRamFirstVariable:
     DELETE_ENV_VAR SlowRamFirst
-    bra .next
+
+.next:
+    move.l (a3),d0
+    bne.b  .traverseMemList
+
+; done with the traversal, set the variables
+    SET_NUMERIC_ENV_VAR TotalChipRam,d4
+    SET_NUMERIC_ENV_VAR TotalFastRam,d5
+    move.l d4,d0
+    add.l  d5,d0
+    add.l  d6,d0
+    SET_NUMERIC_ENV_VAR TotalRam,d0
+
+    tst.l d6
+    beq.b .removeSlowRamVariable
+    SET_NUMERIC_ENV_VAR TotalSlowRam,d6
+    rts
+
+.removeSlowRamVariable
+    DELETE_ENV_VAR TotalSlowRam
+    rts
 
     
     section "Strings",CODE
