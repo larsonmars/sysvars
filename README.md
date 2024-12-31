@@ -41,7 +41,7 @@ However, for the purists, sysvars runs happily also on OS 1.3 and even down to O
 
 # Building
 
-The source should build with [VASM](http://www.compilers.de/vasm.html), [AsmOne](http://www.theflamearrows.info/documents/asmone.html)[^4], [AsmTwo](http://coppershade.org/articles/Code/Tools/AsmTwo/), [AsmPro](https://aminet.net/package/dev/asm/ASMPro1.19), [PhxAss](http://phoenix.owl.de/phxass_e.html) and [asmotor](https://github.com/asmotor/asmotor/tree/master)
+The source should build with [VASM](http://www.compilers.de/vasm.html), [AsmOne](http://www.theflamearrows.info/documents/asmone.html)[^4], [AsmTwo](http://coppershade.org/articles/Code/Tools/AsmTwo/), [AsmPro](https://m68k.aminet.net/package/dev/asm/ASMPro1), [PhxAss](http://phoenix.owl.de/phxass_e.html) and [asmotor](https://github.com/asmotor/asmotor/tree/master)
 
 You can also compile this in VSCode using a [nice VSCode plugin](https://github.com/prb28/vscode-amiga-assembly), a suitable configuration is included in the .vscode directory.
 
