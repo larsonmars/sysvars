@@ -1,6 +1,6 @@
 ************************************************************
 *                                                          *
-*                     SYSVARS V.0.15.1                     *
+*                      SYSVARS V.0.15                      *
 *                                                          *
 * SPDX-FileCopyrightText: (c) 2023-2024 Lars Stockmann     *
 * SPDX-License-Identifier: MIT                             *
@@ -13,7 +13,7 @@
 ************************************************************
 
 PROGVER: macro
-    dc.b "$VER: SYSVARS 0.15.1",0
+    dc.b "$VER: SYSVARS 0.16",0
     endm
 
 ******************** Feature Selection *********************
@@ -632,6 +632,7 @@ VAMP_T_4:       dc.b "V4_1200",0
 VAMP_T_5:       dc.b "V4_Standalone",0
 VAMP_T_6:       dc.b "V2_1200",0
 VAMP_T_7:       dc.b "V4_600",0
+VAMP_T_8:       dc.b "V4_6000",0
 VAMP_T_UNKNOWN: dc.b "Unknown",0
 
 VAMP_TYPE_OFFSETS:
@@ -642,6 +643,7 @@ VAMP_TYPE_OFFSETS:
     dc.b VAMP_T_5-VAMP_TYPE_STRINGS
     dc.b VAMP_T_6-VAMP_TYPE_STRINGS
     dc.b VAMP_T_7-VAMP_TYPE_STRINGS
+    dc.b VAMP_T_8-VAMP_TYPE_STRINGS
     dc.b VAMP_T_UNKNOWN-VAMP_TYPE_STRINGS
 VAMP_TYPE_OFFSETS_END:
 
