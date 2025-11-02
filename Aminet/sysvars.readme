@@ -1,8 +1,8 @@
 Short:        Put system information in env. variables
-Uploader:     Lars Stockmann (larsonmars@email.de)
-Author:       Lars Stockmann (larsonmars@email.de)
+Uploader:     $uploader$
+Author:       $author$
 Type:         util/boot
-Version:      0.15.1
+Version:      0.16
 Architecture: m68k-amigaos >= 1.3
 Distribution: Aminet
 Kurz:         Legt System infos in Umgebungsvariablen
@@ -204,6 +204,9 @@ The code is licensed under the MIT License
 _____________________________________________________________________________
 
 RELEASE HISTORY
+
+Version 0.16
+- Added SAGA (Vampire) support for A6000 (Unicorn).
 
 Version 0.15.1
 - Fixed Vampire V2 detection (removing SAGA as precodition)
