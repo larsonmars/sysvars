@@ -1,8 +1,8 @@
 ************************************************************
 *                                                          *
-*                      SYSVARS V.0.16                      *
+*                      SYSVARS V.0.17                      *
 *                                                          *
-* SPDX-FileCopyrightText: (c) 2023-2024 Lars Stockmann     *
+* SPDX-FileCopyrightText: (c) 2023-2025 Lars Stockmann     *
 * SPDX-License-Identifier: MIT                             *
 *                                                          *
 *                                                          *
@@ -13,7 +13,7 @@
 ************************************************************
 
 PROGVER: macro
-    dc.b "$VER: SYSVARS 0.16",0
+    dc.b "$VER: SYSVARS 0.17",0
     endm
 
 ******************** Feature Selection *********************
@@ -246,13 +246,13 @@ CREATE_ALIGNED_STACK_FRAME: macro
     ifnc "\1","d0"
         move.l \1,d0
     endc
-    neg.l   d0
-    add.l   sp,d0
-    addq.b  #3,d0    ; round to next multiple of 4, by first
-    andi.b  #$fc,d0  ;   adding 3, then clearing last 2 bits
+    neg.l   d0       ; stack grows negative
+    add.l   sp,d0    ; d0 possibly analigned address
+    ; round d0 down to multiple of 4 to align to 32 bit
+    andi.b  #$fc,d0  ; clear last 2 bits
     sub.l   sp,d0
     neg.l   d0
-    sub.l   d0,sp    
+    sub.l   d0,sp
     endm
 
 ;-----------------------------------------------------------
@@ -632,7 +632,7 @@ VAMP_T_4:       dc.b "V4_1200",0
 VAMP_T_5:       dc.b "V4_Standalone",0
 VAMP_T_6:       dc.b "V2_1200",0
 VAMP_T_7:       dc.b "V4_600",0
-VAMP_T_8:       dc.b "V4_6000",0
+VAMP_T_8:       dc.b "V4_A6000",0
 VAMP_T_UNKNOWN: dc.b "Unknown",0
 
 VAMP_TYPE_OFFSETS:
@@ -1010,8 +1010,8 @@ UaeResName: dc.b "uae.resource",0
 ; Henry S. Warren, Jr., "Hacker's Delight", Fig. 10-12 
 ;-----------------------------------------------------------
 ; IN:  D0.l - Integer to be divided
-;      A0   - Return Address;      
-; OUT: D0   - result (quotient)
+;      A0   - Return Address
+; OUT: D0.l - result (quotient)
 ;-----------------------------------------------------------
 ; Overwrites D0, D1, D2
 ;-----------------------------------------------------------
@@ -1062,9 +1062,9 @@ ldiv10:
 ;-----------------------------------------------------------
 ; IN:  D0.l - 32 bit Integer to be printed
 ; OUT: A1   - Address to string
-;      D0   - number of characters written
+;      D0.l - number of characters written
 ;-----------------------------------------------------------
-; Potentially overwrites D0, D1, A0, A1
+; Overwrites D0, D1, A0, A1
 ;-----------------------------------------------------------
 printNumber:
     move.l d2,-(sp) ; ldiv10 overwrites D2
@@ -1099,37 +1099,40 @@ printNumber:
     ds.b 10  ; 10 chiffres
 _PrintedNumberEnd: dc.b 0     ; null terminator
 
+
     section "Code",CODE
 ;-----------------------------------------------------------
 ; Small strlen implementation.
 ;-----------------------------------------------------------
-; IN   A1.l - address of null-terminated string
+; IN   A1   - address of null-terminated string
 ; OUT: D0.l - length
-;      A1.l - points to end of string (null terminator)
+;      A1   - points to end of string (null terminator)
 ;-----------------------------------------------------------
-; No additional overwrites
+; Overwrites D0, A1
 ;-----------------------------------------------------------
 strlen:
     move.l a1,d0  ; preserve the start address
-.test:
-    tst.b (a1)+  ; test character
-    bne   .test  ; if not '\0', back to test
-    subq  #1,a1  ; back to the null terminator
+.testNT:
+    tst.b (a1)+    ; test character
+    bne   .testNT  ; if not '\0', back to testNT
+    subq  #1,a1    ; back to the null terminator
     sub.l a1,d0
     neg.l d0
     rts
+
 
 ;-----------------------------------------------------------
 ; Puts the path to an environment variable on the stack.
 ; The path is created by prepending "ENV:" to the
 ; environment variable name.
+; After invocation, SP points to the null terminated path
 ;-----------------------------------------------------------
 ; IN   D1.l - address of null-terminated env. var. name
 ;      A0   - return address
-; OUT: SP   - Points to the path (also null terminated)
-;      D0.l - length of stack frame
+; OUT: SP   - Address to path string
+;      D0.l - length of stack frame to be returned by caller
 ;-----------------------------------------------------------
-; No additional overwrites
+; Overwrites SP, D0, D1, A1
 ;-----------------------------------------------------------
 GetEnvVarPath:
 
@@ -1139,16 +1142,15 @@ GetEnvVarPath:
     suba.l d0,a1   ; restore A1 to start of name
     addq.b #5,d0   ; Add 5 (for "ENV:" and '\0')
 
-    CREATE_ALIGNED_STACK_FRAME d0
-
-; 2. save return address in D1
-    move.l a0,d1
+; 2. Create a 32 bit aligned stack frame
+    CREATE_ALIGNED_STACK_FRAME d0 ; stack frame size >= D0
+	; D0 now contains actual length of stack frame
 
 ; 3. Put env. var. path at the beginning of the stack frame
-    movea.l sp,a0  ; SP cannot be byte-incremented, use A0
-    ; Start by putting "ENV:" in string
-    move.l #"ENV:",(a0)+  ; stack frame must be aligned to 4    
-.copy:                    ; copy env. variable name
+    move.l a0,d1          ; We'll need A0, so save it to D1
+    movea.l sp,a0         ; SP cannot be byte-incremented,
+    move.l #"ENV:",(a0)+  ; We can do bec. stack is aligned
+.copy:                    ; Copy env. variable name
     move.b (a1)+,(a0)+
     bne.b  .copy
 
@@ -1169,13 +1171,13 @@ GetEnvVarPath:
 ; dos.library v36, except that the flags argument (D4) is
 ; ignored due to the global nature of setGlobalVar.
 ;-----------------------------------------------------------
-; IN      D1 - address of null-terminated env. var. name
-;         D2 - address of content string
-;         D3 - Content length, -1 for null-terminated string
-; OUT:    D0 - TRUE (-1) if successful, FALSE (0) if not
-; IN/OUT: D6 - Reference to dos.library
+; IN      D1.l - address of null-terminated env. var. name
+;         D2.l - address of content string
+;         D3.l - Content length, -1 for null-terminated string
+; OUT:    D0.l - TRUE (-1) if successful, FALSE (0) if not
+; IN/OUT: D6.l - Reference to dos.library
 ;-----------------------------------------------------------
-; Potentially overwrites D0, D1, A0, A1
+; Overwrites D0, D1, A0, A1
 ;-----------------------------------------------------------
 setGlobalVar:
 
@@ -1185,19 +1187,19 @@ _LVOWrite  = -48
 
 MODE_NEWFILE = 1006
 
-    movem.l d2-d4/a3/a4,-(sp) ; preserve registers
+    movem.l d2-d5/a2,-(sp) ; preserve registers
 
     lea .createFile,a0  ; return address in A0
     bra GetEnvVarPath
 
 .createFile
 ; 3. Create file at env path
-    lea    (sp,d0),a4        ; Stack frame end in A4
+    move.l d0,d5             ; save stack frame size in D5
     move.l sp,d1             ; arg1: name (null terminated)
-    move.l d2,a3             ; save content ref. in A3
+    move.l d2,a2             ; save content ref. in A2
     move.l #MODE_NEWFILE,d2  ; arg2: overwrite existing    
     jsr    _LVOOpen(a6)
-    move.l a4,sp             ; return stack frame
+    add.l d5,sp              ; return stack frame
     move.l d0,d4             ; preserve filehandle
     beq.b .error             ; If we moved a 0, open failed
 
@@ -1208,13 +1210,13 @@ MODE_NEWFILE = 1006
     beq.b .closeFile  ; nothing to write
     bpl.b .callWrite  ; we already have a length
     ; We must calculate the length of the content
-    move.l a3,a1      ; arg1 for strlen
+    move.l a2,a1      ; arg1 for strlen
     bsr.b  strlen
     move.l d0,d3      ; now we have the length in D3
 
 .callWrite:    
     move.l d4,d1       ; arg1: env. var. filehandle
-    move.l a3,d2       ; arg2: content ref.
+    move.l a2,d2       ; arg2: content ref.
     jsr    _LVOWrite(a6)
     cmp.l  d0,d3
     bne.b  .error
@@ -1230,7 +1232,7 @@ MODE_NEWFILE = 1006
     moveq #FALSE,d0  ; return Failure
 
 .end:
-    movem.l (sp)+,d2-d4/a3/a4  ; restore registers
+    movem.l (sp)+,d2-d5/a2  ; restore registers
     rts
 
 
@@ -1246,13 +1248,13 @@ MODE_NEWFILE = 1006
 ; local scope. For OS 1.x, environment variables cannot be
 ; anything but global, i.e., stored in ENV:
 ;-----------------------------------------------------------
-; IN      D1 - address of null-terminated env. var. name
-;         D2 - address of content string
-;         D3 - Content length, -1 for null-terminated string
-; OUT:    D0 - TRUE (-1) if successful, FALSE (0) if not
-; IN/OUT: D6 - Reference to dos.library
+; IN      D1.l - address of null-terminated env. var. name
+;         D2.l - address of content string
+;         D3.l - Content length, -1 for null-terminated string
+; OUT:    D0.l - TRUE (-1) if successful, FALSE (0) if not
+; IN/OUT: D6.l - Reference to dos.library
 ;-----------------------------------------------------------
-; Potentially overwrites D0, D1, A0, A1
+; Overwrites D0, D1, A0, A1
 ;-----------------------------------------------------------
 setEnvVar:
 
@@ -1261,37 +1263,38 @@ _LVODeleteVar = -912
     cmp.w  #36,EXEC_O_LIB_VER(a6)
     bls.b  setGlobalVar
     move.l d4,-(sp)             ; preserve D4
-    move.l  #GVF_LOCAL_ONLY,d4  ; scope is local to script
+    move.l #GVF_LOCAL_ONLY,d4   ; scope is local to script
     jsr    _LVOSetVar(a6)
     move.l (sp)+,d4             ; restore D4
     tst    d0                   ; restore SR Z/N
     rts
 
+
 ;-----------------------------------------------------------
 ; Properly delete a global environment variable.
 ;-----------------------------------------------------------
-; IN      D1 - address of null-terminated env. var. name
-; OUT:    D0 - TRUE (-1) if successful, FALSE (0) if not
-; IN/OUT: D6 - Reference to dos.library
+; IN      D1.l - address of null-terminated env. var. name
+; OUT:    D0.l - TRUE (-1) if successful, FALSE (0) if not
+; IN/OUT: D6.l - Reference to dos.library
 ;-----------------------------------------------------------
-; Potentially overwrites D0, D1, A0, A1
+; Overwrites D0, D1, A0, A1
 ;-----------------------------------------------------------
 deleteGlobalVar:
 
 _LVODeleteFile = -72
 
-    move.l a4,-(sp) ; preserve registers
+    move.l d2,-(sp) ; preserve registers
 
     lea .deleteFile,a0  ; return address in A0
     bra GetEnvVarPath
 
 .deleteFile
-    lea    (sp,d0),a4          ; Stack frame end in A4
+    move.l d0,d2               ; save stack frame size in D2
     move.l sp,d1               ; name (null terminated)
     jsr    _LVODeleteFile(a6)  ; D0 will indicate success
 
-    move.l  a4,sp    ; return stack frame
-    move.l (sp)+,a4  ; restore registers
+    add.l  d2,sp     ; return stack frame
+    move.l (sp)+,d2  ; restore registers
     tst    d0        ; restore SR Z/N
     rts
 
@@ -1304,11 +1307,11 @@ _LVODeleteFile = -72
 ; available (dos.library versions >= 36) or to
 ; deleteGlobalVar.
 ;-----------------------------------------------------------
-; IN      D1 - address of null-terminated env. var. name
-; OUT:    D0 - TRUE (-1) if successful, FALSE (0) if not
-; IN/OUT: D6 - Reference to dos.library
+; IN      D1.l - address of null-terminated env. var. name
+; OUT:    D0.l - TRUE (-1) if successful, FALSE (0) if not
+; IN/OUT: D6.l - Reference to dos.library
 ;-----------------------------------------------------------
-; Potentially overwrites D0, D1, A0, A1
+; Overwrites D0, D1, A0, A1
 ;-----------------------------------------------------------
 deleteEnvVar:
     cmp.w  #36,EXEC_O_LIB_VER(a6)
@@ -1328,9 +1331,9 @@ deleteEnvVar:
 ; Prints a message that shows that an environment variable
 ; could not be set
 ;-----------------------------------------------------------
-; IN: D1 - Environment Variable Name Address
+; IN: D1.l - Environment Variable Name Address
 ;-----------------------------------------------------------
-; Potentially overwrites D0, D1, A0, A1
+; Overwrites D0, D1, A0, A1
 ;-----------------------------------------------------------
 printErrorMsg:
 
@@ -1372,7 +1375,7 @@ _LVOOutput = -60
     move.l  d4,d1
     move.l  sp,d2
     jsr     _LVOWrite(a6)
-    move.l  a4,sp            ; return stack frame
+    move.l  a4,sp           ; return stack frame
     movem.l (sp)+,d2-d4/a4  ; restore used registers
 
 .end:

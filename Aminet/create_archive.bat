@@ -1,7 +1,14 @@
 :: Creates Aminet package
 ::
 :: You can provide author and uploader information via command line arguments or this script will ask you for it.
+::
+:: SPDX-FileCopyrightText: (c) 2023-2024 Lars Stockmann
+:: SPDX-License-Identifier: MIT
+::
+ 
 @ECHO OFF
+
+SETLOCAL
 
 SET author=%1
 SET uploader=%2
@@ -111,13 +118,10 @@ EXIT /b 0
 :CHECK_EXE_PATH
 SET exe_path=%1
 :_CHECK_EXE_PATH_LOOP
-%exe_path% >NUL 2>&1
+%exe_path% DUMMYARG >NUL 2>&1
 IF ERRORLEVEL 9009 (
   SET /P exe_path=Could not find %1 executable... Enter path for %~1! 
   GOTO :_CHECK_EXE_PATH_LOOP
 )
 SET "%~1=%exe_path%"
 EXIT /b 0
-
-
-
