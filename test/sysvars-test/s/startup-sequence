@@ -1,4 +1,4 @@
-; $VER: SYSVARS ECHO Test Script 0.15
+; $VER: SYSVARS ECHO Test Script 0.17
 c/ksge36
 IF WARN
   Echo "Setting things up for KS 1.x..."
@@ -40,7 +40,7 @@ ECHO "           | (__| | | (_| |  | /  \| | \| (__ "
 ECHO "            \__  \ \/\__| |  |/ /\ | |_/ \__ \"
 ECHO "               ) )\ /   )\ \// ____|  _ (   ) )"
 ECHO "            __/ // / __/ /\ / /    | | \ \_/ /"
-ECHO "           (___//_/ |___/  V_/     |_|  (___/ "
+ECHO "           (___//_/ (___/  V_/     |_|  (___/ "
 ECHO ""
 
 sysvars
@@ -72,7 +72,19 @@ IF NOT WARN
                       ECHO "Amiga OS 3.3(?) ($KickVer.$KickRev)"
                     ENDIF
                   ELSE
-                    ECHO "Amiga OS 3.2 ($KickVer.$KickRev)"
+                    IF $KickRev EQ 111
+                      ECHO "Amiga OS 3.2.2 ($KickVer.$KickRev)"
+                    ELSE
+                      IF $KickRev EQ 102
+                        ECHO "Amiga OS 3.2.1 ($KickVer.$KickRev)"
+                      ELSE
+                        IF $KickRev EQ 96
+                          ECHO "Amiga OS 3.2 ($KickVer.$KickRev)"
+                        ELSE
+                          ECHO "Unknown Amiga OS based on 3.2 ($KickVer.$KickRev)"
+                        ENDIF
+                      ENDIF
+                    ENDIF
                   ENDIF
                 ELSE
                   IF $KickRev EQ 143
