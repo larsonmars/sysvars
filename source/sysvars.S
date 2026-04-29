@@ -1,6 +1,6 @@
 ************************************************************
 *                                                          *
-*                      SYSVARS V.0.18                      *
+*                      SYSVARS V.0.19                      *
 *                                                          *
 * SPDX-FileCopyrightText: (c) 2023-2025 Lars Stockmann     *
 * SPDX-License-Identifier: MIT                             *
@@ -13,7 +13,7 @@
 ************************************************************
 
 PROGVER: macro
-    dc.b "$VER: SYSVARS 0.18",0
+    dc.b "$VER: SYSVARS 0.19",0
     endm
 
 ******************** Feature Selection *********************
@@ -30,6 +30,7 @@ E_\1 = 0
     ; DISABLE KickRev
 
     ; DISABLE CPU
+    ; DISABLE CPURev
     ; DISABLE FPU
 
     ; DISABLE Chipset
@@ -45,6 +46,7 @@ E_\1 = 0
     ; DISABLE BSDSockLibRev
     ; DISABLE BSDSockLib
 
+    ; DISABLE Emulation
     ; DISABLE UAEMajor
     ; DISABLE UAEMinor
     ; DISABLE UAERev
@@ -73,6 +75,7 @@ E_\1 = 1
     CHECK_ENABLED KickRev
 
     CHECK_ENABLED CPU
+    CHECK_ENABLED CPURev
     CHECK_ENABLED FPU
 
     CHECK_ENABLED Chipset
@@ -88,6 +91,7 @@ E_\1 = 1
     CHECK_ENABLED BSDSockLibRev
     CHECK_ENABLED BSDSockLib
 
+    CHECK_ENABLED Emulation
     CHECK_ENABLED UAEMajor
     CHECK_ENABLED UAEMinor
     CHECK_ENABLED UAERev
@@ -101,32 +105,63 @@ E_\1 = 1
 FALSE =  0
 TRUE  = -1
 
+; exception vectors
+IllegalInstructionVector    EQU $10
+Line1111EmulatorVector      EQU $2c
+
+CPU_68000   EQU 0
+CPU_68010   EQU 1
+CPU_68020   EQU 2
+CPU_68030   EQU 3
+CPU_68040   EQU 4
+CPU_68060   EQU 6
+CPU_68080   EQU 8
+
+FPU_NONE    EQU 0
+FPU_68881   EQU 1
+FPU_68882   EQU 2
+FPU_INT     EQU 3
+
+EMU_NONE    EQU 0
+EMU_UAE     EQU 1
+EMU_MUSASHI EQU 2
+EMU_EMU68   EQU 3
+
+; processor configuration register disable floating-point unit (68060)
+PCRB_DPF EQU 1
+PCRF_DPF EQU 1<<1
+
 ; cache control enable data cache (68030)
 CACRB_ED EQU 8
 CACRF_ED EQU 1<<8
 
-; cache control no allocate mode (68060)
-CACRB_NAI EQU 14
-CACRF_NAI EQU 1<<14
-
- ; cache control instruction cache enable (68040+)
+; cache control instruction cache enable (68040+)
 CACRB_IE EQU 15
 CACRF_IE EQU 1<<15
 
 AC68080_ID EQU $0440
+MC68060_ID EQU $0430
 
 ; Exec Constants and _LVOs
-
-EXEC_BASE      =  4
+EXEC_BASE      = 4
 EXEC_Node_SIZE = 14
 EXEC_LIB_HDR_S = EXEC_Node_SIZE+20
 EXEC_O_LIB_VER = EXEC_Node_SIZE+6
 
+; exec.library
 _LVOSupervisor = -30
-_LVOOpenLibrary  = -552
+_LVOFindName     = -276
 _LVOCloseLibrary = -414
+_LVOOpenResource = -498
+_LVOOpenLibrary  = -552
 
 _LVOAttnFlags = $128
+_LVOResourceList = $150
+
+; expansion.library
+_LVOFindConfigDev = -72
+musashi_mid EQU $7db
+musashi_interaction_pid EQU $6b
 
 ; Dos _LVOs
 
@@ -139,6 +174,16 @@ GVF_LOCAL_ONLY = $200
 
 ************************* Macros  **************************
 
+
+;-----------------------------------------------------------
+; get's exec.library base address to passed address register
+;-----------------------------------------------------------
+; Macro Arguments:
+; 1: address register to store the exec.library address in
+;-----------------------------------------------------------
+EXECBASE macro
+	movea.l EXEC_BASE.w,\1
+  endm
 
 ;-----------------------------------------------------------
 ; Uses the sysvars naming scheme to generate environment
@@ -180,7 +225,7 @@ SET_ENV_VAR: macro
             moveq #0,d3
         endc
         bsr    setEnvVar
-        bne    .setVarDone\@
+        bne.b  .setVarDone\@
         move.l #\1EnvVarName,d1      ; print error
         bsr    printErrorMsg
         moveq  #0,d0                 ; indicate error
@@ -322,7 +367,7 @@ OPEN_LIBRARY: macro
         movea.l a6,\3
     endc
 
-    movea.l EXEC_BASE,a6         ; get exec base in A6
+    EXECBASE a6         ; get exec base in A6
     jsr     _LVOOpenLibrary(a6)
     ifnc "\3",""
         movea.l \3,a6
@@ -362,7 +407,7 @@ CLOSE_LIBRARY: macro
             movea.l a6,\2
         endc
 
-    movea.l EXEC_BASE,a6          ; get exec base in A6
+    EXECBASE a6         ; get exec base in A6
     jsr     _LVOCloseLibrary(a6)
     ifnc "\2",""
         movea.l \2,a6
@@ -419,7 +464,7 @@ _LVOSoftVer   = $14
 
     lea    KS_END,a0
     suba.l KS_END_OFFSET_LEN(a0),a0  ; Subtract KS length
-    adda.w #KS_VER_OFFSET,a0
+    lea    KS_VER_OFFSET(a0),a0
     moveq  #0,d5                     ; clean D5
     moveq  #0,d6                     ; clean D6
     move.w (a0)+,d5                  ; KickVer --> D5
@@ -431,7 +476,7 @@ _LVOSoftVer   = $14
 
     ; On KS < 1.2, we detect that here and fetch the version
     ; via _LVOSoftVer of EXEC.
-    movea.l EXEC_BASE,a0            ; get exec base in A0
+    EXECBASE a6                     ; get exec base in A6
     move.w  _LVOSoftVer(a0),d5      ; get KS version
     SET_NUMERIC_ENV_VAR KickVer,d5
     SET_ENV_VAR KickRev
@@ -451,7 +496,7 @@ _LVOSoftVer   = $14
 
 *********************** CPU and FPU ************************
 
-    if E_CPU+E_FPU
+    if E_CPU+E_FPU+E_CPURev
     
     section "Code",CODE
 
@@ -470,16 +515,64 @@ _LVOSoftVer   = $14
 ; Potentially overwrites all registers, except A6
 ;-----------------------------------------------------------
 setCPUAndFPUEnvVars:
+    ; detect CPU
+    EXECBASE a0             ; get exec base in A0
+    lea .detectCPU(pc),a5   ; fetch pointer to function
+    jsr _LVOSupervisor(a0)  ; execute function in supervisor
+                            ; mode
 
-; Test bits of second AttnFlags byte
-    movea.l EXEC_BASE,a0          ; get exec base in A0
-    move.w  _LVOAttnFlags(a0),d5  ; get cpu info in D5
+    move.l  d7,d0
+    add.l   #$30,d0         ; convert to ascii
+    lea     CPUStr,a0
+    move.b  d0,3(a0)
+    ; set cpu environment variable
+    SET_ENV_VAR CPU,#CPUStr
 
-; D4 gets the CPU version as ASCII character that replaces
-; the "?" in "680?0"
+    ; detect FPU
+    EXECBASE a0             ; get exec base in A0
+    move.l  d7,d1           ; recall cpu model
+    lea .detectFPU(pc),a5
+    jsr _LVOSupervisor(a0)
 
+; D0 gets the FPU version as ASCII character that replaces
+; the "?" in "6888?" or the whole string gets mangled
+.writeFPUString:
+    lea     FPUStr,a0
+    cmp.l   #FPU_NONE,d0
+    beq.s   .fpuNone
+    cmp.l   #FPU_INT,d0
+    beq.s   .fpuInternal
+    add.l   #$30,d0         ; convert to ascii
+
+.fpu68882:
+.fpu68881:
+    move.b  d0,4(a0)
+    ; zero terminate the string
+    move.b  #0,5(a0)
+    bra.s   .setFPUEnvVar
+.fpuNone:
+    DELETE_ENV_VAR FPU
+    bra.s   .end
+.fpuInternal:
+    move.l #"inte",(a0)    ; "internal"
+.setFPUEnvVar:
+    SET_ENV_VAR FPU,#FPUStr
+
+    ; set CPU revision for MC68060/AC68080
+    cmp.b #CPU_68040,d7
+    ble.s .end
+    SET_NUMERIC_ENV_VAR CPURev,d6
+
+.end
+    rts
+
+    section "Code",CODE
+
+;-----------------------------------------------------------
+; Determines the CPU type
+; This function must be called in supervisor mode
+;
 ; Based on code by
-
 ; Chris Hooper: detecting MC680x0 cpus by cleverly
 ; exploiting their CACR and PCR capabilities
 ; https://github.com/cdhooper/amigapci_stm32/blob/main/amiga/cpu_control.c
@@ -495,106 +588,212 @@ setCPUAndFPUEnvVars:
 ; Apollo AC68080 PROGRAMMER'S REFERENCE MANUAL
 ; telling the MC68060 and AC68080 apart by its PCR ID value
 ; http://www.apollo-core.com/documentation/AC68080PRM.pdf
+;
+;-----------------------------------------------------------
+; OUT: D7 - CPU type
+;      D6 - CPU revision (MC68060/AC68080 only)
+;
+;-----------------------------------------------------------
+; Note: Doesn't preserve any registers
+;-----------------------------------------------------------
 
-    moveq #"0",d4           ; assume 68000
-    btst #0,d5              ; test for 68010+
-    beq.s .storeCPU         ; it's 68000
-    moveq #"1",d4           ; assume 68010
-    btst #1,d5              ; test for 68020+
-    beq.s .storeCPU         ; it's 68010
-    moveq #"2",d4           ; assume 68020
-    move.l #CACRF_IE,d1     ; CACR value to enable 68040+
+.detectCPU:
+    EXECBASE a0             ; get exec base in A0
+
+    ; save Illegal Instruction vector from absolute address
+    move.l  IllegalInstructionVector.w,d6
+    ; install Illegal Instruction trap on absolute address
+    lea     .illegalInstructionTrap(pc),a0
+    move.l  a0,IllegalInstructionVector.w
+
+    moveq   #CPU_68000,d7   ; assume 68000
+    ; execute instruction illegal on MC68000
+    dc.w    $4e7a,$0801     ; movec vbr,d0
+
+    tst.l   d0              ; check for zero VBR
+    beq.s   .zeroVBR
+
+    ; install Illegal Instruction trap on vbr address
+    movea.l d0,a1
+    move.l  IllegalInstructionVector(a1),d5
+    move.l  a0,IllegalInstructionVector.w(a1)
+
+.zeroVBR:
+    moveq   #CPU_68010,d7   ; assume 68010
+    ; execute instruction illegal on MC68010
+    dc.w    $4e7a,$0002     ; movec cacr,d0
+
+    moveq   #CPU_68020,d7   ; assume 68020
+    move.l  #CACRF_IE,d1    ; CACR value to enable 68040+
                             ; instruction cache
-    lea .writeCACR(pc),a5   ; fetch pointer to function
-    jsr _LVOSupervisor(a0)  ; execute function in supervisor
-                            ; mode
-    btst #CACRB_IE,d1       ; test for 68040
-    bne.s .is040
-    move.l #CACRF_ED,d1     ; CACR value to enable 68030
+    jsr     .writeCACR(pc)
+
+    btst    #CACRB_IE,d1    ; test for 68040
+    bne.s   .is040
+
+    ; it's either 68020 or 68030
+    move.l  #CACRF_ED,d1    ; CACR value to enable 68030
                             ; data cache
-    jsr _LVOSupervisor(a0)  ; execute function in
-                            ; supervisor mode
-    btst #CACRB_ED,d1
-    beq.s .storeCPU         ; it's 68020
-    moveq #"3",d4
-    bra.s .storeCPU         ; it's 68030
+    jsr     .writeCACR(pc)
+    btst    #CACRB_ED,d1
+    beq.s   .detectCPU_end  ; it's 68020
+
+	moveq   #CPU_68030,d7   ; it's 68030
+    bra.s   .detectCPU_end
+
 .is040:
-    moveq #"4",d4           ; assume 68040
-    move.l #CACRF_NAI,d1    ; CACR value to enable 68060
-                            ; no allocation mode
-    jsr _LVOSupervisor(a0)  ; execute function in
-                            ; supervisor mode
-    btst #CACRB_NAI,d1
-    beq.s .storeCPU         ; it's 68040
-    moveq #"6",d4           ; assume 68060
-    lea .readPCR(pc),a5     ; fetch pointer to function
-    jsr _LVOSupervisor(a0)  ; execute function in
-                            ; supervisor mode
-    swap d1
-    and.l #$0000FFF0,d1
-    cmp.w #AC68080_ID,d1
-    bne.s .storeCPU         ; it's 68060
-    moveq #"8",d4           ; it's 68080
+    moveq   #CPU_68040,d7   ; assume 68040
+    dc.w    $4e7a,$1808     ; hex for 'movec.l pcr, d1 ; read pcr
 
-.storeCPU:
-    move.b  d4,CPUStr+3            ; digit at position 3
-    SET_ENV_VAR_CLEN CPU,#CPUStr,5
+    ; store revision
+    moveq   #0,d6
+    move.w  d1,d6
+    lsr.w   #8,d6
+    ; it's either MC68060 or AC68080
+    moveq   #CPU_68080,d7   ; assume 68080
+    clr.w   d1
+    swap    d1
+    cmp.w   #AC68080_ID,d1
+    beq.s   .detectCPU_end  ; it's 68080
+    moveq   #CPU_68060,d7   ; it's 68060
+    bra.s   .detectCPU_end
 
-; Only consider checking FPU if CPU > 68010
-    cmpi.b  #'1',d4 ; Check for 68010
-    bhi .mayHaveFPU    
-    rts
+.cleanupCPU
+    ; restore Illegal Instruction vector on absolute address
+    move.l  d6,IllegalInstructionVector.w
+    tst.l   d7
+    beq.s   .detectCPU_end
 
-.writeCACR:
-    dc.w $4e7a,$0002  ; hex for 'movec.l cacr, d0' ; save cacr
-    dc.w $4e7b,$1002  ; hex for 'movec.l d1, cacr' ; write cacr
-    dc.w $4e7a,$1002  ; hex for 'movec.l cacr, d1' ; read cacr back
-    dc.w $4e7b,$0002  ; hex for 'movec.l d0, cacr' ; restore cacr
+    ; check if Illegal Instruction vector on VBR address needs to be restored 
+    dc.w    $4e7a,$1801     ; movec vbr,d1
+    tst.l   d1
+    beq.s   .detectCPU_end
+
+    ; restore Illegal Instruction vector on VBR address
+    move.l  d1,a1
+    move.l  d5,IllegalInstructionVector(a1)
+.detectCPU_end
     rte
 
-.readPCR:
-    dc.w $4e7a,$1808  ; hex for 'movec.l pcr, d1 ; read pcr
+.illegalInstructionTrap:
+    tst.l   d7
+    bne.s   .sixWordFrame
+; 68000 generates 4 word stack frames on exception (Four-Word Stack Frame, Format $0)
+.fourWordFrame
+    addq.l  #$6,sp
+    bra.s   .cleanupCPU
+; 68010+ generate 6 word stack frames on exception (Six-Word Stack Frame, Format $2)
+.sixWordFrame
+    addq.l  #$8,sp
+    bra.s   .cleanupCPU
+
+.writeCACR
+    dc.w    $4e7a,$0002     ; hex for 'movec.l cacr, d0' ; save cacr
+    dc.w    $4e7b,$1002     ; hex for 'movec.l d1, cacr' ; write cacr
+    dc.w    $4e7a,$1002     ; hex for 'movec.l cacr, d1' ; read cacr back
+    dc.w    $4e7b,$0002     ; hex for 'movec.l d0, cacr' ; restore cacr
+    rts
+
+;-----------------------------------------------------------
+; Determines the FPU type and FPU version, returns them in
+; registers D0 and D1
+; This function must be called in supervisor mode
+;
+; Based on information obtained from:
+; 1. MOTOROLA M68000 FAMILY Programmer’s Reference Manual Rev.1
+; 2. M68060 User’s Manual
+; 3. MC68881/882 Floating-point Coprocessor User's Manual Second Edition
+;
+;-----------------------------------------------------------
+; IN:  D1 - CPU type
+; OUT: D0 - FPU type
+;      D1 - FPU version
+;-----------------------------------------------------------
+; Note: Doesn't preserve any registers
+;-----------------------------------------------------------
+.detectFPU:
+    move.l  d1,d7
+
+    cmp.l   #CPU_68060,d7
+    blo.s   .no060
+    ; try enabling fpu on MC68060
+    dc.w    $4e7a,$0808     ; hex for 'movec.l pcr, d0 ; read pcr
+    and.b   #(~PCRF_DPF),d0
+    dc.w    $4e7b,$0808     ; hex for 'movec.l d0, pcr ; write pcr
+
+.no060:
+    ; save Line 1111 Emulator (Unimplemented F-Line Opcode) vector
+    move.l  Line1111EmulatorVector.w,d3
+    lea     .line1111Trap(pc),a0
+    move.l  a0,Line1111EmulatorVector.w
+
+    ; check for any fpu
+    moveq   #FPU_NONE,d0    ; assume no fpu
+    dc.w    $f280,$0000     ; fnop
+
+    moveq   #1,d0           ; assume mc68881
+    dc.w    $f327           ; fsave -(sp)
+    moveq   #0,d1
+    moveq   #0,d2
+    move.b  (sp),d1         ; get fpu version
+    move.b  1(sp),d2        ; get state frame size
+    dc.w    $f35f           ; frestore (sp)+
+    cmpi    #$18,d2         ; MC68881 idle state frame size is $18
+    beq.s   .cleanup
+    cmpi    #$38,d2         ; MC68882 idle state frame size is $38
+    beq.s   .mc68882
+    tst.w   d2              ; MC68040 idle state frame size is $00
+                            ; MC68060 has a different frame format
+    beq.s   .internal
+    moveq   #0,d0           ; assume no fpu
+    beq.s   .cleanup
+
+.internal
+    moveq   #FPU_INT,d0     ; internal 68040/68060/68080 fpu
+    bra.s   .cleanup
+
+.mc68882
+    moveq   #FPU_68882,d0   ; mc68882 fpu
+
+.cleanup
+    ; restore Line 1111 Emulator (Unimplemented F-Line Opcode) vector
+    move.l  d3,Line1111EmulatorVector.w
     rte
 
-.mayHaveFPU:
-; We lshift D0 by 1 (via add.b D5,D5) until it is negative
-    lea    FPUStr,a0
-    add.b  d5,d5
-    bmi.b  .storeInternal
-    add.b  d5,d5
-    bmi.b  .store68882
-    add.b  d5,d5
-    bmi.b  .store68881
-; nothing to store
-    moveq  #0,d3
-    bra.b  .setFPUEnvVar
-.storeInternal:
-    move.l #"inte",(a0)    ; "internal"
-    moveq  #8,d3
-    bra.b  .setFPUEnvVar
-.store68882:
-    move.b #"2",4(a0)
-    moveq  #5,d3
-    bra.b  .setFPUEnvVar
-.store68881:
-    move.b #"1",4(a0)
-    moveq  #5,d3
-.setFPUEnvVar:
-    SET_ENV_VAR FPU,#FPUStr,d3
-    rts
+.line1111Trap:
+    cmp.l   #CPU_68000,d7
+    beq.s   .fourwordframe
+    cmp.l   #CPU_68040,d7
+    blo.s   .sixwordframe
+; MC68EC040 and MC68LC040 Floating-Point Unimplemented Stack Frame, Format $4
+.eightwordframe
+    lea     $10(sp),sp
+    bra.s   .cleanup
+; all other cpus except 68000 without fpu generate 6 word stack frames on exception
+; (Six-Word Stack Frame, Format $2)
+.sixwordframe
+    addq.l  #$8,sp
+    bra.s   .cleanup
+; 68000 generates 4 word stack frames on exception (Four-Word Stack Frame, Format $0)
+.fourwordframe
+    addq.l  #$6,sp
+    bra.s   .cleanup
 
     section "VariableData",DATA
     
-CPUStr: dc.b "680?0"
+CPUStr:
+    dc.b "680?0",0
 
 ; The string for the FPU is composed using a long  move.
 ; Thus the target string must be aligned accordingly.
     cnop 0,4
-FPUStr: dc.b "6888rnal"
+FPUStr:
+    dc.b "6888rnal",0
     
     section "Strings",CODE
 
     DEFINE_ENV_VAR CPU
+    DEFINE_ENV_VAR CPURev
     DEFINE_ENV_VAR FPU    
 
     endc
@@ -621,8 +820,8 @@ VAMP_VER_ADDR      = $dff3fc
 
 ; We skip the Vampire detection if no 68080 CPU is present.
 ; Thus, check again AttnFlags...
-    movea.l EXEC_BASE,a0          ; get exec base in A0
-    move.w  _LVOAttnFlags(a0),d5  ; get cpu info in D5
+    EXECBASE a0                     ; get exec base in A0
+    move.w  _LVOAttnFlags(a0),d5    ; get cpu info in D5
     btst    #10,d5
     bne.b   .haveVampire
 
@@ -638,11 +837,11 @@ VAMP_VER_ADDR      = $dff3fc
 
     moveq  #0,d0
     move.w VAMP_CORE_REV_ADDR,d0
-    beq    .setCoreRevNotAvailable  ; 0 is invalid
-    bmi    .setCoreRevNotAvailable  ; negative is invalid
+    beq.b  .setCoreRevNotAvailable  ; 0 is invalid
+    bmi.b  .setCoreRevNotAvailable  ; negative is invalid
 
     SET_NUMERIC_ENV_VAR VampireCoreRev,d0
-    bra    .processClockMultAndVersion
+    bra.b   .processClockMultAndVersion
 
 .setCoreRevNotAvailable:
     SET_ENV_VAR_CLEN VampireCoreRev,#VAMP_CORE_REV_NA,-1
@@ -664,9 +863,9 @@ VAMP_VER_ADDR      = $dff3fc
     lea    VAMP_TYPE_OFFSETS,a1 ; we need the offsets later
     lsr.w  #8,d4                ; get higher 8 bits for type
     subq.b #1,d4                ; constants start at 1
-    bmi    .setVampType         ; if < 0, print unknown
+    bmi.b  .setVampType         ; if < 0, print unknown
     cmpi.b #VAMP_TYPE_COUNT,d4  ; compare against type count 
-    bge    .setVampType         ; if greater, print unknown
+    bge.b  .setVampType         ; if greater, print unknown
     lea    VAMP_TYPE_STRINGS,a0 ; valid type, A0 -> strings
     move.b (a1,d4),d4           ; nth (D4) offset into D4
     adda   d4,a0                ; Add offset (D4) to A0
@@ -825,8 +1024,8 @@ mh_Attributes = $0e
 mh_Lower      = $14
 mh_Upper      = $18
 
-    movea.l EXEC_BASE,a0
-    move.l _LVOMemList(a0),d0  ; get memory list
+    EXECBASE a0                 ; get exec base in A0
+    move.l _LVOMemList(a0),d0   ; get memory list
 
 ; initialize registers
 ; Note: D0 - D3 are potentially overwritten by SET_ENV_VAR
@@ -876,7 +1075,7 @@ mh_Upper      = $18
     ; Now test if slow ram came first (total fast ram = 0)
     tst.l d5
     ; if not remove the SlowRamFirst variable
-    bne   .removeSlowRamFirstVariable
+    bne.b .removeSlowRamFirstVariable
     ; otherwise set this variable to '1' (D3 is the length)
     moveq #1,d3
     SET_ENV_VAR SlowRamFirst,#_SlowRamFirstVal,d3
@@ -968,7 +1167,7 @@ setBSDSockLibEnvVars:
 
 .copyIdString:
     move.b (a1)+,(a0)+
-    bne    .copyIdString
+    bne.b  .copyIdString
 
     CLOSE_LIBRARY a4,a5
     ; Set variables
@@ -998,7 +1197,7 @@ BSDSockLibName: dc.b "bsdsocket.library",0
 
 **************************** UAE ***************************
 
-    if E_UAEMajor+E_UAEMinor+E_UAERev
+    if E_UAEMajor+E_UAEMinor+E_UAERev+E_Emulation
     
     section "Code",CODE
 ;-----------------------------------------------------------
@@ -1016,49 +1215,152 @@ BSDSockLibName: dc.b "bsdsocket.library",0
 ; Potentially overwrites all registers, except A6
 ;-----------------------------------------------------------
 setUAEEnvVars:
+    ; save dos.library pointer
+    movea.l a6,a4
+    ; get exec.library
+    EXECBASE a6
 
-_LVOResourceList = $150
-_LVOFindName     = -276
+    ; assume no emulation
+    moveq #EMU_NONE,d7
+
+; try to open UAE's uae.resource
+    moveq #0,d0
+    lea .UaeResName,a1
+    jsr _LVOOpenResource(a6)
+    tst.l d0
+    beq.w .notUAE
+
+    ; it's UAE
+    moveq #EMU_UAE,d7
 
 ; UAE structure embeds a library structure, after that it
 ; holds three words: major,; minor and revision
+    move.l d0,a3                ; addr. of UAE struct in A2
+    lea EXEC_LIB_HDR_S(a3),a3   ; add precalculated offset
 
-    movea.l a6,a4 ; preserve A6 (needed for SysBase)   
-    movea.l EXEC_BASE,a6             ; get exec base in A6
-    lea     _LVOResourceList(a6),a0  ; arg1 resource list
-    lea     UaeResName,a1            ; arg2 resource name
-    jsr     _LVOFindName(a6)         ; call FindName
-    movea.l a4,a6 ; restore A6
+; Get UAE version information
+    lea .UAEVersions,a0
+    ; UAE major version
+    move.w (a3)+,(a0)+
+    ; UAE minor version
+    move.w (a3)+,(a0)+
+    ; UAE revision
+    move.w (a3)+,(a0)+
 
-; Test whether UAE was detected
+    bra.w .writeEmuEnvVars
+
+.notUAE:
+; try to open Emu68's devicetree.resource
+    moveq #0,d0
+    lea .Emu68ResName,a1
+    jsr _LVOOpenResource(a6)
     tst.l d0
-    beq   .notFound
+    beq.s .notEmu68
 
-; Store version as string in UAEEnvVarCont    
-    move.l  d0,a3               ; addr. of UAE struct in A2
-    adda    #EXEC_LIB_HDR_S,a3  ; add precalculated offset
+    ; it's Emu68
+    moveq #EMU_EMU68,d7
+    bra.w .writeEmuEnvVars
 
-    moveq  #0,d0
+.notEmu68:
+; try to find Musashi's interaction device
+    moveq #0,d0
+    lea.l .expansionName,a1
+    jsr _LVOOpenLibrary(a6)
+    tst.l d0
+    ; quit if expansion.library couldn't be opened
+    beq.s .writeEmuEnvVars
+
+    ; move expansion.library pointer
+    movea.l d0,a6
+    suba.l a0,a0
+	move.l #musashi_mid,d0
+	moveq #musashi_interaction_pid,d1
+    jsr _LVOFindConfigDev(a6)
+    tst.l d0
+    beq.s .closeExpansion
+
+    ; it's Musashi
+    moveq #EMU_MUSASHI,d7
+
+.closeExpansion:
+    ; get expansion.library pointer
+    movea.l a6,a1
+    EXECBASE a6
+    jsr _LVOCloseLibrary(a6)
+
+.writeEmuEnvVars
+    ; restore dos.library pointer
+    movea.l a4,a6
+
+    cmp.b #EMU_NONE,d7
+    ; no emulation found
+    beq.w .deleteUAE
+
+.checkUAE
+    cmp.b #EMU_UAE,d7
+    bne.w .checkEmu68
+
+    ; write UAE emulation environment variables
+    lea .UAEVersions,a3
+    moveq #0,d0
     move.w (a3)+,d0
     SET_NUMERIC_ENV_VAR UAEMajor,d0
-    moveq  #0,d0
+    moveq #0,d0
     move.w (a3)+,d0
     SET_NUMERIC_ENV_VAR UAEMinor,d0
-    moveq  #0,d0
+    moveq #0,d0
     move.w (a3)+,d0
     SET_NUMERIC_ENV_VAR UAERev,d0
-    rts
+    SET_ENV_VAR_CLEN Emulation,#.UAEStr,3
+    bra.s .exit
 
-.notFound:
+.checkEmu68
+    cmp.b #EMU_EMU68,d7
+    bne.s .checkMusashi
+
+    ; write Emu68 emulation environment variables
+    SET_ENV_VAR_CLEN Emulation,#.Emu68Str,5
+    bra.s .deleteUAE
+
+.checkMusashi
+    cmp.b #EMU_MUSASHI,d7
+    bne.s .deleteUAE
+
+    ; write Musashi emulation environment variables
+    SET_ENV_VAR_CLEN Emulation,#.MusashiStr,7
+    ; fall through
+
+.deleteUAE:
     DELETE_ENV_VAR UAEMajor
     DELETE_ENV_VAR UAEMinor
     DELETE_ENV_VAR UAERev
+
+.exit
     rts
 
     section "Strings",CODE
+.expansionName:
+    dc.b "expansion.library",0
+    cnop 0,2
+.UaeResName:
+    dc.b "uae.resource",0
+    cnop 0,2
+.Emu68ResName:
+    dc.b "devicetree.resource",0
+    cnop 0,2
+.UAEVersions:
+    dcb.w 3,0
+.UAEStr:
+    dc.b "UAE"
+    cnop 0,2
+.MusashiStr:
+    dc.b "Musashi"
+    cnop 0,2
+.Emu68Str:
+    dc.b "Emu68"
+    cnop 0,2
 
-UaeResName: dc.b "uae.resource",0
-
+    DEFINE_ENV_VAR Emulation
     DEFINE_ENV_VAR UAEMajor
     DEFINE_ENV_VAR UAEMinor
     DEFINE_ENV_VAR UAERev
@@ -1139,9 +1441,9 @@ printNumber:
 
 ; Generate string from right to left, starting right before
 ; _PrintedNumberEnd
-    lea .retFromDiv,a0
+    lea .retFromDiv(pc),a0
 .loop:
-    bra    ldiv10
+    bra.b  ldiv10
 .retFromDiv:
     LMUL10 d0,d1
     sub.l  d1,d3    ; get remainder
@@ -1178,7 +1480,7 @@ strlen:
     move.l a1,d0  ; preserve the start address
 .testNT:
     tst.b (a1)+    ; test character
-    bne   .testNT  ; if not '\0', back to testNT
+    bne.b .testNT  ; if not '\0', back to testNT
     subq  #1,a1    ; back to the null terminator
     sub.l a1,d0
     neg.l d0
@@ -1202,7 +1504,7 @@ GetEnvVarPath:
 
 ; 1. get total length of env variable path
     move.l d1,a1   ; arg1 for strlen
-    bsr    strlen  ; get length in D0
+    bsr.b  strlen  ; get length in D0
     suba.l d0,a1   ; restore A1 to start of name
     addq.b #5,d0   ; Add 5 (for "ENV:" and '\0')
 
@@ -1239,7 +1541,7 @@ GetEnvVarPath:
 ;         D2.l - address of content string
 ;         D3.l - Content length, -1 for null-terminated string
 ; OUT:    D0.l - TRUE (-1) if successful, FALSE (0) if not
-; IN/OUT: D6.l - Reference to dos.library
+; IN/OUT: A6.l - Reference to dos.library
 ;-----------------------------------------------------------
 ; Overwrites D0, D1, A0, A1
 ;-----------------------------------------------------------
@@ -1253,8 +1555,8 @@ MODE_NEWFILE = 1006
 
     movem.l d2-d5/a2,-(sp) ; preserve registers
 
-    lea .createFile,a0  ; return address in A0
-    bra GetEnvVarPath
+    lea .createFile(pc),a0  ; return address in A0
+    bra.b GetEnvVarPath
 
 .createFile
 ; 3. Create file at env path
@@ -1316,7 +1618,7 @@ MODE_NEWFILE = 1006
 ;         D2.l - address of content string
 ;         D3.l - Content length, -1 for null-terminated string
 ; OUT:    D0.l - TRUE (-1) if successful, FALSE (0) if not
-; IN/OUT: D6.l - Reference to dos.library
+; IN/OUT: A6.l - Reference to dos.library
 ;-----------------------------------------------------------
 ; Overwrites D0, D1, A0, A1
 ;-----------------------------------------------------------
@@ -1339,7 +1641,7 @@ _LVODeleteVar = -912
 ;-----------------------------------------------------------
 ; IN      D1.l - address of null-terminated env. var. name
 ; OUT:    D0.l - TRUE (-1) if successful, FALSE (0) if not
-; IN/OUT: D6.l - Reference to dos.library
+; IN/OUT: A6.l - Reference to dos.library
 ;-----------------------------------------------------------
 ; Overwrites D0, D1, A0, A1
 ;-----------------------------------------------------------
@@ -1349,7 +1651,7 @@ _LVODeleteFile = -72
 
     move.l d2,-(sp) ; preserve registers
 
-    lea .deleteFile,a0  ; return address in A0
+    lea .deleteFile(pc),a0  ; return address in A0
     bra GetEnvVarPath
 
 .deleteFile
@@ -1373,7 +1675,7 @@ _LVODeleteFile = -72
 ;-----------------------------------------------------------
 ; IN      D1.l - address of null-terminated env. var. name
 ; OUT:    D0.l - TRUE (-1) if successful, FALSE (0) if not
-; IN/OUT: D6.l - Reference to dos.library
+; IN/OUT: A6.l - Reference to dos.library
 ;-----------------------------------------------------------
 ; Overwrites D0, D1, A0, A1
 ;-----------------------------------------------------------
